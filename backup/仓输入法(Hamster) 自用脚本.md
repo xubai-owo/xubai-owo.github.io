@@ -1,5 +1,7 @@
 # 仓输入法(Hamster) 自用脚本
 ## DeepSeek
+> [!TIP]
+> 请在脚本中的变量功能中添加 deepseek_key 变量，值为 DeepSeek 的 API Key
 ```javascript
 // author: 叙白
 // date: 2024-10-09
@@ -74,6 +76,8 @@ async function output() {
 }
 ```
 ## Gemini
+> [!TIP]
+> 请在脚本中的变量功能中添加 gemini_key 变量，值为 Gemini 的 API Key
 ```js
 // author: 叙白
 // date: 2024-10-03
@@ -148,6 +152,8 @@ async function output() {
 }
 ```
 ## Base64编解码
+> [!TIP]
+> E需要编码的字符串/D需要解码的字符串
 ```js
 // author: 叙白
 // name: base64编码解码.js
@@ -220,6 +226,8 @@ async function output() {
 }
 ```
 ## Deeplx
+> [!TIP]
+> 需添加变量deeplx_key
 ```js
 // author: 叙白
 // date: 2024-09-25
@@ -586,8 +594,3 @@ async function output() {
   return translatedText;
 }
 ```
-
-
-
-
-
