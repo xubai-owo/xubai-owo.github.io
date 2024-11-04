@@ -10,8 +10,7 @@
         let theme = localStorage.getItem("meek_theme") || "light";
         document.documentElement.setAttribute("data-color-mode", theme);
     </script>
-<meta name="description" content="# 仓输入法(Hamster) 自用脚本
-## DeepSeek
+<meta name="description" content="## DeepSeek
 > [!TIP]
 > 请在脚本中的变量功能中添加 deepseek_key 变量，值为 DeepSeek 的 API Key
 ```javascript
@@ -386,8 +385,7 @@ async function getOilPrice(regionName) {
 // data: 2024-09-26
 // 使用: 不在输入框中输入数字，直接点击按钮，则默认转换为 1 基准货币 兑 其他货币汇率。">
 <meta property="og:title" content="仓输入法(Hamster) 自用脚本">
-<meta property="og:description" content="# 仓输入法(Hamster) 自用脚本
-## DeepSeek
+<meta property="og:description" content="## DeepSeek
 > [!TIP]
 > 请在脚本中的变量功能中添加 deepseek_key 变量，值为 DeepSeek 的 API Key
 ```javascript
@@ -831,8 +829,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 </div>
 </div>
     <div id="content">
-<div class="markdown-body" id="postBody"><h1>仓输入法(Hamster) 自用脚本</h1>
-<h2>DeepSeek</h2>
+<div class="markdown-body" id="postBody"><h2>DeepSeek</h2>
 <div class="markdown-alert markdown-alert-tip"><p class="markdown-alert-title"><svg class="octicon octicon-light-bulb mr-2" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.207.245-.383.453-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM6 15.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z"></path></svg>Tip</p><p>请在脚本中的变量功能中添加 deepseek_key 变量，值为 DeepSeek 的 API Key</p>
 </div>
 <div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// author: 叙白</span>
@@ -1405,6 +1402,23 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
   
   <span class="pl-k">const</span> <span class="pl-s1">translatedText</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">googleTranslate</span><span class="pl-kos">(</span><span class="pl-s1">text</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
   <span class="pl-k">return</span> <span class="pl-s1">translatedText</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span></pre></div>
+<h2>每日新闻</h2>
+<div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// name: 新闻.js</span>
+<span class="pl-c">// date: 2024-11-04</span>
+<span class="pl-c">// author: 叙白</span>
+
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">output</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+	<span class="pl-k">let</span> <span class="pl-s1">url</span> <span class="pl-c1">=</span> <span class="pl-s">"http://api.suxun.site/api/sixs?type=json"</span><span class="pl-kos">;</span>
+	<span class="pl-k">return</span> <span class="pl-k">await</span> <span class="pl-en">getData</span><span class="pl-kos">(</span><span class="pl-s1">url</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+	
+<span class="pl-kos">}</span>
+
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">getData</span><span class="pl-kos">(</span><span class="pl-s1">url</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+	<span class="pl-k">const</span> <span class="pl-kos">{</span> data <span class="pl-kos">}</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span><span class="pl-c1">url</span>: <span class="pl-s1">url</span><span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+	<span class="pl-k">const</span> <span class="pl-s1">jsonData</span> <span class="pl-c1">=</span> <span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">parse</span><span class="pl-kos">(</span><span class="pl-s1">data</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+	<span class="pl-k">let</span> <span class="pl-s1">news</span> <span class="pl-c1">=</span> <span class="pl-s1">jsonData</span><span class="pl-kos">.</span><span class="pl-c1">news</span><span class="pl-kos">;</span>
+	<span class="pl-k">return</span> <span class="pl-s1">news</span><span class="pl-kos">;</span>
 <span class="pl-kos">}</span></pre></div></div>
 <div style="font-size:small;margin-top:8px;float:right;">转载请注明出处</div>
 

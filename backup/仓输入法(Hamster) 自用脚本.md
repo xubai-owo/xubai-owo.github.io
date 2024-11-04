@@ -1,4 +1,3 @@
-# 仓输入法(Hamster) 自用脚本
 ## DeepSeek
 > [!TIP]
 > 请在脚本中的变量功能中添加 deepseek_key 变量，值为 DeepSeek 的 API Key
@@ -592,5 +591,25 @@ async function output() {
   
   const translatedText = await googleTranslate(text);
   return translatedText;
+}
+```
+
+## 每日新闻
+```js
+// name: 新闻.js
+// date: 2024-11-04
+// author: 叙白
+
+async function output() {
+	let url = "http://api.suxun.site/api/sixs?type=json";
+	return await getData(url);
+	
+}
+
+async function getData(url) {
+	const { data } = await $http({url: url});
+	const jsonData = JSON.parse(data);
+	let news = jsonData.news;
+	return news;
 }
 ```
