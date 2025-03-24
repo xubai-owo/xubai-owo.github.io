@@ -11,10 +11,10 @@
         document.documentElement.setAttribute("data-color-mode", theme);
     </script>
 <meta name="description" content="## 1. 准备文件
-将 `calculator_translator.lua` 文件放入 Rime 目录下的 `lua/` 文件夹中。">
+1. 将 [`calculator_translator.lua`](https://github.com/baopaau/rime-lua-collection/blob/master/calculator_translator.lua) 文件放入 `Hamster/Rime/lua` 文件夹中。">
 <meta property="og:title" content="Rime计算器lua使用">
 <meta property="og:description" content="## 1. 准备文件
-将 `calculator_translator.lua` 文件放入 Rime 目录下的 `lua/` 文件夹中。">
+1. 将 [`calculator_translator.lua`](https://github.com/baopaau/rime-lua-collection/blob/master/calculator_translator.lua) 文件放入 `Hamster/Rime/lua` 文件夹中。">
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://xubai-owo.github.io/post/Rime-ji-suan-qi-lua-shi-yong.html">
 <meta property="og:image" content="https://github.githubassets.com/favicons/favicon.svg">
@@ -86,8 +86,14 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 </div>
     <div id="content">
 <div class="markdown-body" id="postBody"><h2>1. 准备文件</h2>
-<p>将 <code class="notranslate">calculator_translator.lua</code> 文件放入 Rime 目录下的 <code class="notranslate">lua/</code> 文件夹中。<br>
-<a href="https://github.com/baopaau/rime-lua-collection/blob/master/calculator_translator.lua">脚本链接</a>, 也可在仓输入法的QQ群内获取 704160594</p>
+<ol>
+<li>将 <a href="https://github.com/baopaau/rime-lua-collection/blob/master/calculator_translator.lua"><code class="notranslate">calculator_translator.lua</code></a> 文件放入 <code class="notranslate">Hamster/Rime/lua</code> 文件夹中。</li>
+<li>也可以通过仓输入法的QQ群（群号：704160594）获取。</li>
+</ol>
+<div class="markdown-alert markdown-alert-important"><p class="markdown-alert-title"><svg class="octicon octicon-report mr-2" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.573 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Zm7 2.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Important</p>
+<p>修改方案文件和使用补丁文件二选一即可。</p>
+</div>
+<hr>
 <h2>2. 修改方案文件</h2>
 <h3>2.1 配置 <code class="notranslate">engine/translators</code></h3>
 <p>在方案文件（例如 <code class="notranslate">xxx.schema.yaml</code>）中的 <code class="notranslate">engine/translators</code> 下添加一行：</p>
@@ -104,25 +110,31 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
     <span class="pl-ent">reverse_lookup</span>: <span class="pl-s"><span class="pl-pds">"</span>^`[a-z]*'?$<span class="pl-pds">"</span></span>
     <span class="pl-ent">easy_english</span>: <span class="pl-s"><span class="pl-pds">"</span>^'[A-Z|a-z]*`?$<span class="pl-pds">"</span></span>
     <span class="pl-ent">expression</span>: <span class="pl-s"><span class="pl-pds">"</span>^=.*$<span class="pl-pds">"</span></span></pre></div>
-<h3>2.3 使用补丁文件</h3>
-<div class="markdown-alert markdown-alert-important"><p class="markdown-alert-title"><svg class="octicon octicon-report mr-2" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.573 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Zm7 2.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Important</p><p>注意: 若使用直接在方案文件(xxx.schema.yaml)中修改的方式，就不用看这个了!</p>
-</div>
-<p>如果需要使用补丁文件，可以创建 <code class="notranslate">xxx.custom.yaml</code> 文件（或修改已有文件），其中 <code class="notranslate">xxx</code> 对应方案文件名。内容如下：</p>
+<hr>
+<h2>3. 使用补丁文件</h2>
+<p>如果你不想直接修改方案文件，可以采用补丁文件的方式，优点是不影响原方案的更新。</p>
+<ol>
+<li>创建 <code class="notranslate">xxx.custom.yaml</code> 文件（或修改已有文件），其中 <code class="notranslate">xxx</code> 对应方案文件名。(例如：你有方案文件名为<code class="notranslate">rime_ice.schema.yaml</code>， 新建的补丁文件就为<code class="notranslate">rime_ice.custom.yaml</code>)</li>
+<li>在补丁文件中添加如下内容：</li>
+</ol>
 <div class="highlight highlight-source-yaml"><pre class="notranslate"><span class="pl-ent">patch</span>:
   <span class="pl-ent">engine/translators/+</span>: <span class="pl-s">[lua_translator@*calculator_translator]</span>
   <span class="pl-ent">recognizer/patterns/expression</span>: <span class="pl-s"><span class="pl-pds">"</span>^=.*$<span class="pl-pds">"</span></span></pre></div>
 <div class="markdown-alert markdown-alert-tip"><p class="markdown-alert-title"><svg class="octicon octicon-light-bulb mr-2" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.207.245-.383.453-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM6 15.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z"></path></svg>Tip</p><p><strong>注意：</strong> 若已存在补丁文件，请勿重复粘贴 <code class="notranslate">patch</code> 部分。直接在已有文件中添加配置，保持与原文件缩进一致。</p>
-</div>
 <p>例如，若已有的custom文件内容是</p>
 <div class="highlight highlight-source-yaml"><pre class="notranslate"><span class="pl-ent">patch</span>:
-  <span class="pl-ent">translator/dictionary</span>: <span class="pl-s">tigress.extended</span>
-  <span class="pl-ent">menu/page_size</span>: <span class="pl-c1">9</span> </pre></div>
+     <span class="pl-ent">translator/dictionary</span>: <span class="pl-s">tigress.extended</span>
+     <span class="pl-ent">menu/page_size</span>: <span class="pl-c1">9</span> </pre></div>
 <p>合并后为</p>
 <div class="highlight highlight-source-yaml"><pre class="notranslate"><span class="pl-ent">patch</span>:
-  <span class="pl-ent">engine/translators/+</span>: <span class="pl-s">[lua_translator@*calculator_translator]</span>
-  <span class="pl-ent">recognizer/patterns/expression</span>: <span class="pl-s"><span class="pl-pds">"</span>^=.*$<span class="pl-pds">"</span></span>
-  <span class="pl-ent">translator/dictionary</span>: <span class="pl-s">tigress.extended</span>
-  <span class="pl-ent">menu/page_size</span>: <span class="pl-c1">9</span> </pre></div></div>
+     <span class="pl-ent">engine/translators/+</span>: <span class="pl-s">[lua_translator@*calculator_translator]</span>
+     <span class="pl-ent">recognizer/patterns/expression</span>: <span class="pl-s"><span class="pl-pds">"</span>^=.*$<span class="pl-pds">"</span></span>
+     <span class="pl-ent">translator/dictionary</span>: <span class="pl-s">tigress.extended</span>
+     <span class="pl-ent">menu/page_size</span>: <span class="pl-c1">9</span> </pre></div>
+</div>
+<h2>4. 可能会遇到的问题</h2>
+<h3>1. 按下<code class="notranslate">=</code>号后，直接上屏了，或者后续输入数字时也直接上屏</h3>
+<p>如果用的是默认布局而不是皮肤，检查一下 键盘设置&gt;数字九宫格 ，需要开启<strong>数字键</strong>、<strong>左侧符号</strong>、<strong>右侧符号</strong>由Rime处理。</p></div>
 <div style="font-size:small;margin-top:8px;float:right;">转载请注明出处</div>
 
 <button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
