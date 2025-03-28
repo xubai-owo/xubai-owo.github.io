@@ -613,3 +613,85 @@ async function getData(url) {
 	return news;
 }
 ```
+
+## 智谱ai翻译
+```js
+// author: 叙白
+// date: 2025-01-18
+// name: BigModelTranslator.js
+// 注意：请在脚本中的变量功能中添加 bigmodel_key 变量，值为 BigModel 的 API Key
+
+const BASE_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
+const DEFAULT_MODEL = "glm-4-flash";
+const DEFAULT_TEMPERATURE = 0.1;
+
+/**
+ * 主函数，用于处理输入并输出翻译结果
+ */
+async function output() {
+  var text = $searchText || $pasteboardContent;
+  if (!text) {
+    return "";
+  }
+  return await bigModelTranslate(text);
+}
+
+/**
+ * 调用 BigModel 翻译 API
+ * @param {string} text - 需要翻译的文本
+ * @returns {Promise<string>} - 翻译后的文本
+ */
+async function bigModelTranslate(text) {
+  const messages = [
+    {
+      role: "system",
+      content: "You are a professional, authentic machine translation engine.",
+    },
+    {
+      role: "user",
+      content: `; 把下一行文本作为纯文本输入，对该文本进行中文和外语的互译,仅输出翻译。如果某些内容无需翻译（如专有名词、代码等），则保持原文不变。 不要解释，输入文本:\n${text}`,
+    },
+  ];
+
+  try {
+    const response = await $http({
+      url: BASE_URL,
+      method: "POST",
+      header: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${$bigmodel_key}`,
+      },
+      body: {
+        messages,
+        model: DEFAULT_MODEL,
+        temperature: DEFAULT_TEMPERATURE,
+        top_p: 0.1,
+        max_tokens: 2048,
+      },
+      timeout: 30,
+    });
+
+    if (response.response.statusCode !== 200) {
+      throw new Error(`API请求失败: HTTP状态码 ${response.response.statusCode}`);
+    }
+
+    const responseData = JSON.parse(response.data);
+    if (!responseData.choices || responseData.choices.length === 0) {
+      throw new Error("API返回数据格式错误: 没有找到有效的回复");
+    }
+
+    // 返回翻译后的内容
+    return responseData.choices[0].message?.content || "";
+  } catch (error) {
+    const errorMessage =
+      error instanceof SyntaxError
+        ? "API返回的数据无法解析为JSON"
+        : error.message || "未知错误";
+    $log(`BigModel API 错误: ${errorMessage}`);
+    if (error.response) {
+      $log(`响应详情: ${JSON.stringify(error.response)}`);
+    }
+    return `抱歉，发生了错误: ${errorMessage}`;
+  }
+}
+```
