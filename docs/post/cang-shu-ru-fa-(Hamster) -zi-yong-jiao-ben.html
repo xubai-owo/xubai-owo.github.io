@@ -10,755 +10,81 @@
         let theme = localStorage.getItem("meek_theme") || "light";
         document.documentElement.setAttribute("data-color-mode", theme);
     </script>
-<meta name="description" content="## DeepSeek
-> [!TIP]
-> 请在脚本中的变量功能中添加 deepseek_key 变量，值为 DeepSeek 的 API Key
+<meta name="description" content="## BigModelTranslator.js
+
 ```javascript
 // author: 叙白
-// date: 2024-10-09
-// name: DeepSeek.js
-// 注意：请在脚本中的变量功能中添加 deepseek_key 变量，值为 DeepSeek 的 API Key
-// 如果您使用转发平台的 API ，则值为转发平台的 API Key, 并且修改BASE_URL
-// 此脚本仅兼容openai格式(openai, deepseek, kimi以及更多兼容openai格式的都可使用，温度需要根据各家ai自行调整)
+// date: 2025-01-18
+// name: BigModelTranslator.js
+// 注意：请在脚本中的变量功能中添加 bigmodel_key 变量，值为 BigModel 的 API Key
 
-// 依次为base_url, 默认模型，默认温度，不懂请勿修改
-const BASE_URL = 'https://api.deepseek.com/v1/chat/completions';
-const DEFAULT_MODEL = 'deepseek-chat';
+const BASE_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+const DEFAULT_MODEL = 'glm-4-flash';
+const DEFAULT_TEMPERATURE = 0.1;
 
-// 不同任务类型的推荐温度值：代码生成/数学解题 0.0, 数据抽取/分析 1.0, 通用对话 1.3, 翻译 1.3, 创意类写作/诗歌创作 1.5
-const DEFAULT_TEMPERATURE = 1.3;
-
-async function deepseekDemo(question = '你好', options = {}) {
-  const {
-    model = DEFAULT_MODEL,
-    temperature = DEFAULT_TEMPERATURE,
-    isShortAnswer = !question.endsWith('-')  // 默认简短回答
-  } = options;
-
-  // 可自定义systemPrompt，在你的问题结尾后加-号，会自动帮你转短问
-  const systemPrompt = `你是一位AI助手，能够回答的专业以及准确${isShortAnswer ? '，现在请尽量用一句话回答我的问题' : ''}`;
-
-  const messages = [
-    { role: 'system', content: systemPrompt },
-    { role: 'user', content: question }
-  ];
-
-  try {
-    const resp = await $http({
-      url: BASE_URL,
-      method: 'post',
-      header: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${$deepseek_key}`,
-      },
-      body: { messages, model, temperature },
-      timeout: 30,
-    });
-
-    const statusCode = resp.response.statusCode;
-    if (statusCode !== 200) {
-      throw new Error(`API请求失败: HTTP状态码 ${statusCode}`);
-    }
-
-    const parsedData = JSON.parse(resp.data);
-    if (!parsedData.choices || parsedData.choices.length === 0) {
-      throw new Error('API返回数据格式错误: 没有找到有效的回复');
-    }
-
-    return parsedData.choices[0].message?.content || '';
-  } catch (error) {
-    let errorMessage = '未知错误';
-    if (error instanceof SyntaxError) {
-      errorMessage = 'API返回的数据无法解析为JSON';
-    } else if (error.message) {
-      errorMessage = error.message;
-    }
-    $log(`DeepSeek API 错误: ${errorMessage}`);
-    if (error.response) {
-      $log(`响应详情: ${JSON.stringify(error.response)}`);
-    }
-    return `抱歉，发生了错误: ${errorMessage}`;
-  }
-}
-
+/**
+ * 主函数，用于处理输入并输出翻译结果
+ */
 async function output() {
-  const question = $searchText || $pasteboardContent || '你好';
-  return await deepseekDemo(question);
-}
-```
-## Gemini
-> [!TIP]
-> 请在脚本中的变量功能中添加 gemini_key 变量，值为 Gemini 的 API Key
-```js
-// author: 叙白
-// date: 2024-10-03
-// name: Gemini.js
-// 注意：请在脚本中的变量功能中添加 gemini_key 变量，值为 Gemini 的 API Key
-
-const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
-const DEFAULT_MODEL = 'gemini-1.5-flash';
-
-async function geminiDemo(question = '你好', options = {}) {
-  const {
-    model = DEFAULT_MODEL,
-    isShortAnswer = question.endsWith('-')
-  } = options;
-
-  const systemPrompt = `你是一位AI助手，能够回答的专业以及准确${isShortAnswer ? '，现在请尽量用一句话回答我的问题' : ''}`;
-
-  const url = `${BASE_URL}/${model}:generateContent?key=${$gemini_key}`;
-  const body = {
-    'system_instruction': {
-      'parts': {
-        'text': systemPrompt
-      }
-    },
-    'contents': {
-      'parts': {
-        'text': question
-      }
-    }
-  };
-
-  try {
-    const resp = await $http({
-      url,
-      method: 'post',
-      header: {
-        'Content-Type': 'application/json'
-      },
-      body: body,
-      timeout: 30,
-    });
-
-    const statusCode = resp.response.statusCode;
-    if (statusCode !== 200) {
-      throw new Error(`API请求失败: HTTP状态码 ${statusCode}`);
-    }
-
-    const parsedData = JSON.parse(resp.data);
-    if (!parsedData.candidates || parsedData.candidates.length === 0) {
-      throw new Error('API返回数据格式错误: 没有找到有效的回复');
-    }
-
-    return parsedData.candidates[0].content.parts[0].text || '';
-  } catch (error) {
-    let errorMessage = '未知错误';
-    if (error instanceof SyntaxError) {
-      errorMessage = 'API返回的数据无法解析为JSON';
-    } else if (error.message) {
-      errorMessage = error.message;
-    }
-    $log(`Gemini API 错误: ${errorMessage}`);
-    if (error.response) {
-      $log(`响应详情: ${JSON.stringify(error.response)}`);
-    }
-    return `抱歉，发生了错误: ${errorMessage}`;
-  }
-}
-
-async function output() {
-  const question = $searchText || $pasteboardContent || '你好-';
-  return await geminiDemo(question);
-}
-```
-## Base64编解码
-> [!TIP]
-> E需要编码的字符串/D需要解码的字符串
-```js
-// author: 叙白
-// name: base64编码解码.js
-// date: 2024-09-25
-// 使用：E需要编码的字符串/D需要解码的字符串
-
-function base64Encode(str) {
-  // 将字符串转换为 UTF-8 编码
-  const utf8Bytes = unescape(encodeURIComponent(str));
-  let output = '';
-  let buffer = 0;
-  let bitsCollected = 0;
-
-  for (let byte of utf8Bytes) {
-    buffer = (buffer << 8) | byte.charCodeAt(0);
-    bitsCollected += 8;
-
-    while (bitsCollected >= 6) {
-      bitsCollected -= 6;
-      output += 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='[(buffer >> bitsCollected) & 0x3F];
-    }
-  }
-
-
-  if (bitsCollected > 0) {
-    buffer <<= (6 - bitsCollected);
-    output += 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='[(buffer & 0x3F)];
-    output += '='; // 添加填充
-  }
-
-  return output;
-}
-
-function base64Decode(str) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
-  let output = '';
-  let buffer = 0;
-  let bitsCollected = 0;
-
-  for (let char of str) {
-    if (char === '=') break;
-    const charIndex = chars.indexOf(char);
-    if (charIndex === -1) continue; // 忽略非法字符
-
-    buffer = (buffer << 6) | charIndex;
-    bitsCollected += 6;
-
-    while (bitsCollected >= 8) {
-      bitsCollected -= 8;
-      output += String.fromCharCode((buffer >> bitsCollected) & 0xFF);
-    }
-  }
-
-  // 将解码后的字节转换回 UTF-8
-  return decodeURIComponent(escape(output));
-}
-
-async function output() {
-  const text = $searchText || $pasteboardContent
+  var text = $searchText || $pasteboardContent;
   if (!text) {
-    return '请输入内容!';
+    return '';
   }
-  if (text[0] === 'E') {
-    return base64Encode(text.slice(1));;
-  } else if (text[0] === 'D') {
-    return base64Decode(text.slice(1));
-  } else {
-    return '请输入正确的指令';
-  }
-}
-```
-## Deeplx
-> [!TIP]
-> 需添加变量deeplx_key
-```js
-// author: 叙白
-// date: 2024-09-25
-// name: Deeplx.js
-// 注意: 需添加变量deeplx_key
-// 使用： 要翻译成英文或中文，在翻译文本前加“中/英”， 例： 中我要回家，将会翻译成英文
-
-async function output() {
-  const text = $searchText || $pasteboardContent;
-  if (!text) return null; // 检查输入是否为空
-
-  const langMap = {
-    '中': 'ZH',
-    '英': 'EN'
-  };
-
-  const target = langMap[text[0]]; // 根据首字符映射语言
-  if (!target) return null; // 如果没有匹配到对应语言，直接返回
-
-  const payload = {
-    text: text.slice(1),
-    source_lang: 'auto',
-    target_lang: target
-  };
-
-  try {
-    const response = await $http({
-      url: `https://api.deeplx.org/${$deeplx_key}/translate`,
-      method: 'POST',
-      header: { 'Content-Type': 'application/json' },
-      body: payload,
-    });
-
-    if (response.response.statusCode !== 200) {
-      return '请求失败';
-    }
-
-    return JSON.parse(response.data).data;
-  } catch (error) {
-    $log(error);
-    return null;
-  }
-}
-```
-### Deeplx中英自动翻译
-```js
-// author: 叙白
-// date: 2024-09-28
-// name: Deeplx中外互译.js
-// 注意: 需添加变量deeplx_key
-// 使用：输入中文自动翻译成英文，输入非中文自动翻译成中文
-
-async function output() {
-  const text = $searchText || $pasteboardContent || '测试文本';
-  if (!text) return '请输入要翻译的文本'; // 检查输入是否为空
-
-
-  let target = await detectLang(text); // 自动检测语言并翻译
-  let translatedText = await translate(text, target); // 翻译文本
-  return translatedText;
-  
+  return await bigModelTranslate(text);
 }
 
-async function detectLang(text) {
-  try {
-    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=auto&dt=t&q=${encodeURIComponent(text)}`;
-		// 第一次调用 googleTranslate 函数，检测并翻译文本
-    const resp = await $http({
-      url,
-      header: {'Content-Type': 'application/json'}
-      });
-
-    if (resp.response.statusCode !== 200) {
-      return '翻译失败';
-    }
-
-    const jsonDict = JSON.parse(resp.data);
-    const detectedLang = jsonDict[2]; // 这个字段包含检测到的源语言
-
-    // 根据检测到的源语言决定目标语言
-    let targetLang = detectedLang === 'zh-CN' ? 'EN' : 'ZH';
-    return targetLang;
-  } catch (error) {
-    throw new Error(error);
-  }
-}
-
-async function translate(text, target) {
-  const payload = {
-    text: text,
-    source_lang: 'auto',
-    target_lang: target
-  };
-
-  try {
-    const response = await $http({
-      url: `https://api.deeplx.org/${$deeplx_key}/translate`,
-      method: 'POST',
-      header: { 'Content-Type': 'application/json' },
-      body: payload,
-    });
-
-    if (response.response.statusCode !== 200) {
-      return '请求失败';
-    }
-    $log(response.data);
-    return JSON.parse(response.data).data;
-  } catch (error) {
-    $log(error);
-    return null;
-  }
-}
-```
-## 每日油价
-```js
-// name: 每日油价.js
-// data: 2024-10-18
-// author: 叙白
-// desc: 自行设置你需要的省份
-
-async function output() {
-	// 省份名自行替换
-	return await getOilPrice('广东省');
-}
-
-async function getOilPrice(regionName) {
-	const url = 'https://v2.api-m.com/api/oilPrice'
-	const {data} = await $http({url: url});
-	const jsonData = JSON.parse(data);
-	const region = jsonData.data.filter(item => item.regionName === regionName)[0];
-	const prices = [
-  `92汽油: ${region.n92}元`,
-  `95汽油: ${region.n95}元`,
-  `98汽油: ${region.n98}元`,
-  `0号柴油: ${region.n0}元`
-];
-  return prices;
-}
-```
-## 汇率
-```js
-// author: 叙白
-// name: 汇率.js
-// data: 2024-09-26
-// 使用: 不在输入框中输入数字，直接点击按钮，则默认转换为 1 基准货币 兑 其他货币汇率。">
+/**
+ * 调用 BigModel 翻译 API
+ * @param {string} text - 需要翻译的文本
+ * @returns {Promise<string>} - 翻译后的文本
+ */
+async function bigModelTranslate(text) {
+  const messages = [
+    {
+      role: 'system',
+      content: 'You are a professional, authentic machine translation engine.',
+    },
+    {
+      role: 'user',
+      content: `; 把下一行文本作为纯文本输入，对该文本进行中文和外语的互译,仅输出翻译。">
 <meta property="og:title" content="仓输入法(Hamster) 自用脚本">
-<meta property="og:description" content="## DeepSeek
-> [!TIP]
-> 请在脚本中的变量功能中添加 deepseek_key 变量，值为 DeepSeek 的 API Key
+<meta property="og:description" content="## BigModelTranslator.js
+
 ```javascript
 // author: 叙白
-// date: 2024-10-09
-// name: DeepSeek.js
-// 注意：请在脚本中的变量功能中添加 deepseek_key 变量，值为 DeepSeek 的 API Key
-// 如果您使用转发平台的 API ，则值为转发平台的 API Key, 并且修改BASE_URL
-// 此脚本仅兼容openai格式(openai, deepseek, kimi以及更多兼容openai格式的都可使用，温度需要根据各家ai自行调整)
+// date: 2025-01-18
+// name: BigModelTranslator.js
+// 注意：请在脚本中的变量功能中添加 bigmodel_key 变量，值为 BigModel 的 API Key
 
-// 依次为base_url, 默认模型，默认温度，不懂请勿修改
-const BASE_URL = 'https://api.deepseek.com/v1/chat/completions';
-const DEFAULT_MODEL = 'deepseek-chat';
+const BASE_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+const DEFAULT_MODEL = 'glm-4-flash';
+const DEFAULT_TEMPERATURE = 0.1;
 
-// 不同任务类型的推荐温度值：代码生成/数学解题 0.0, 数据抽取/分析 1.0, 通用对话 1.3, 翻译 1.3, 创意类写作/诗歌创作 1.5
-const DEFAULT_TEMPERATURE = 1.3;
-
-async function deepseekDemo(question = '你好', options = {}) {
-  const {
-    model = DEFAULT_MODEL,
-    temperature = DEFAULT_TEMPERATURE,
-    isShortAnswer = !question.endsWith('-')  // 默认简短回答
-  } = options;
-
-  // 可自定义systemPrompt，在你的问题结尾后加-号，会自动帮你转短问
-  const systemPrompt = `你是一位AI助手，能够回答的专业以及准确${isShortAnswer ? '，现在请尽量用一句话回答我的问题' : ''}`;
-
-  const messages = [
-    { role: 'system', content: systemPrompt },
-    { role: 'user', content: question }
-  ];
-
-  try {
-    const resp = await $http({
-      url: BASE_URL,
-      method: 'post',
-      header: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${$deepseek_key}`,
-      },
-      body: { messages, model, temperature },
-      timeout: 30,
-    });
-
-    const statusCode = resp.response.statusCode;
-    if (statusCode !== 200) {
-      throw new Error(`API请求失败: HTTP状态码 ${statusCode}`);
-    }
-
-    const parsedData = JSON.parse(resp.data);
-    if (!parsedData.choices || parsedData.choices.length === 0) {
-      throw new Error('API返回数据格式错误: 没有找到有效的回复');
-    }
-
-    return parsedData.choices[0].message?.content || '';
-  } catch (error) {
-    let errorMessage = '未知错误';
-    if (error instanceof SyntaxError) {
-      errorMessage = 'API返回的数据无法解析为JSON';
-    } else if (error.message) {
-      errorMessage = error.message;
-    }
-    $log(`DeepSeek API 错误: ${errorMessage}`);
-    if (error.response) {
-      $log(`响应详情: ${JSON.stringify(error.response)}`);
-    }
-    return `抱歉，发生了错误: ${errorMessage}`;
-  }
-}
-
+/**
+ * 主函数，用于处理输入并输出翻译结果
+ */
 async function output() {
-  const question = $searchText || $pasteboardContent || '你好';
-  return await deepseekDemo(question);
-}
-```
-## Gemini
-> [!TIP]
-> 请在脚本中的变量功能中添加 gemini_key 变量，值为 Gemini 的 API Key
-```js
-// author: 叙白
-// date: 2024-10-03
-// name: Gemini.js
-// 注意：请在脚本中的变量功能中添加 gemini_key 变量，值为 Gemini 的 API Key
-
-const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
-const DEFAULT_MODEL = 'gemini-1.5-flash';
-
-async function geminiDemo(question = '你好', options = {}) {
-  const {
-    model = DEFAULT_MODEL,
-    isShortAnswer = question.endsWith('-')
-  } = options;
-
-  const systemPrompt = `你是一位AI助手，能够回答的专业以及准确${isShortAnswer ? '，现在请尽量用一句话回答我的问题' : ''}`;
-
-  const url = `${BASE_URL}/${model}:generateContent?key=${$gemini_key}`;
-  const body = {
-    'system_instruction': {
-      'parts': {
-        'text': systemPrompt
-      }
-    },
-    'contents': {
-      'parts': {
-        'text': question
-      }
-    }
-  };
-
-  try {
-    const resp = await $http({
-      url,
-      method: 'post',
-      header: {
-        'Content-Type': 'application/json'
-      },
-      body: body,
-      timeout: 30,
-    });
-
-    const statusCode = resp.response.statusCode;
-    if (statusCode !== 200) {
-      throw new Error(`API请求失败: HTTP状态码 ${statusCode}`);
-    }
-
-    const parsedData = JSON.parse(resp.data);
-    if (!parsedData.candidates || parsedData.candidates.length === 0) {
-      throw new Error('API返回数据格式错误: 没有找到有效的回复');
-    }
-
-    return parsedData.candidates[0].content.parts[0].text || '';
-  } catch (error) {
-    let errorMessage = '未知错误';
-    if (error instanceof SyntaxError) {
-      errorMessage = 'API返回的数据无法解析为JSON';
-    } else if (error.message) {
-      errorMessage = error.message;
-    }
-    $log(`Gemini API 错误: ${errorMessage}`);
-    if (error.response) {
-      $log(`响应详情: ${JSON.stringify(error.response)}`);
-    }
-    return `抱歉，发生了错误: ${errorMessage}`;
-  }
-}
-
-async function output() {
-  const question = $searchText || $pasteboardContent || '你好-';
-  return await geminiDemo(question);
-}
-```
-## Base64编解码
-> [!TIP]
-> E需要编码的字符串/D需要解码的字符串
-```js
-// author: 叙白
-// name: base64编码解码.js
-// date: 2024-09-25
-// 使用：E需要编码的字符串/D需要解码的字符串
-
-function base64Encode(str) {
-  // 将字符串转换为 UTF-8 编码
-  const utf8Bytes = unescape(encodeURIComponent(str));
-  let output = '';
-  let buffer = 0;
-  let bitsCollected = 0;
-
-  for (let byte of utf8Bytes) {
-    buffer = (buffer << 8) | byte.charCodeAt(0);
-    bitsCollected += 8;
-
-    while (bitsCollected >= 6) {
-      bitsCollected -= 6;
-      output += 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='[(buffer >> bitsCollected) & 0x3F];
-    }
-  }
-
-
-  if (bitsCollected > 0) {
-    buffer <<= (6 - bitsCollected);
-    output += 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='[(buffer & 0x3F)];
-    output += '='; // 添加填充
-  }
-
-  return output;
-}
-
-function base64Decode(str) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
-  let output = '';
-  let buffer = 0;
-  let bitsCollected = 0;
-
-  for (let char of str) {
-    if (char === '=') break;
-    const charIndex = chars.indexOf(char);
-    if (charIndex === -1) continue; // 忽略非法字符
-
-    buffer = (buffer << 6) | charIndex;
-    bitsCollected += 6;
-
-    while (bitsCollected >= 8) {
-      bitsCollected -= 8;
-      output += String.fromCharCode((buffer >> bitsCollected) & 0xFF);
-    }
-  }
-
-  // 将解码后的字节转换回 UTF-8
-  return decodeURIComponent(escape(output));
-}
-
-async function output() {
-  const text = $searchText || $pasteboardContent
+  var text = $searchText || $pasteboardContent;
   if (!text) {
-    return '请输入内容!';
+    return '';
   }
-  if (text[0] === 'E') {
-    return base64Encode(text.slice(1));;
-  } else if (text[0] === 'D') {
-    return base64Decode(text.slice(1));
-  } else {
-    return '请输入正确的指令';
-  }
-}
-```
-## Deeplx
-> [!TIP]
-> 需添加变量deeplx_key
-```js
-// author: 叙白
-// date: 2024-09-25
-// name: Deeplx.js
-// 注意: 需添加变量deeplx_key
-// 使用： 要翻译成英文或中文，在翻译文本前加“中/英”， 例： 中我要回家，将会翻译成英文
-
-async function output() {
-  const text = $searchText || $pasteboardContent;
-  if (!text) return null; // 检查输入是否为空
-
-  const langMap = {
-    '中': 'ZH',
-    '英': 'EN'
-  };
-
-  const target = langMap[text[0]]; // 根据首字符映射语言
-  if (!target) return null; // 如果没有匹配到对应语言，直接返回
-
-  const payload = {
-    text: text.slice(1),
-    source_lang: 'auto',
-    target_lang: target
-  };
-
-  try {
-    const response = await $http({
-      url: `https://api.deeplx.org/${$deeplx_key}/translate`,
-      method: 'POST',
-      header: { 'Content-Type': 'application/json' },
-      body: payload,
-    });
-
-    if (response.response.statusCode !== 200) {
-      return '请求失败';
-    }
-
-    return JSON.parse(response.data).data;
-  } catch (error) {
-    $log(error);
-    return null;
-  }
-}
-```
-### Deeplx中英自动翻译
-```js
-// author: 叙白
-// date: 2024-09-28
-// name: Deeplx中外互译.js
-// 注意: 需添加变量deeplx_key
-// 使用：输入中文自动翻译成英文，输入非中文自动翻译成中文
-
-async function output() {
-  const text = $searchText || $pasteboardContent || '测试文本';
-  if (!text) return '请输入要翻译的文本'; // 检查输入是否为空
-
-
-  let target = await detectLang(text); // 自动检测语言并翻译
-  let translatedText = await translate(text, target); // 翻译文本
-  return translatedText;
-  
+  return await bigModelTranslate(text);
 }
 
-async function detectLang(text) {
-  try {
-    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=auto&dt=t&q=${encodeURIComponent(text)}`;
-		// 第一次调用 googleTranslate 函数，检测并翻译文本
-    const resp = await $http({
-      url,
-      header: {'Content-Type': 'application/json'}
-      });
-
-    if (resp.response.statusCode !== 200) {
-      return '翻译失败';
-    }
-
-    const jsonDict = JSON.parse(resp.data);
-    const detectedLang = jsonDict[2]; // 这个字段包含检测到的源语言
-
-    // 根据检测到的源语言决定目标语言
-    let targetLang = detectedLang === 'zh-CN' ? 'EN' : 'ZH';
-    return targetLang;
-  } catch (error) {
-    throw new Error(error);
-  }
-}
-
-async function translate(text, target) {
-  const payload = {
-    text: text,
-    source_lang: 'auto',
-    target_lang: target
-  };
-
-  try {
-    const response = await $http({
-      url: `https://api.deeplx.org/${$deeplx_key}/translate`,
-      method: 'POST',
-      header: { 'Content-Type': 'application/json' },
-      body: payload,
-    });
-
-    if (response.response.statusCode !== 200) {
-      return '请求失败';
-    }
-    $log(response.data);
-    return JSON.parse(response.data).data;
-  } catch (error) {
-    $log(error);
-    return null;
-  }
-}
-```
-## 每日油价
-```js
-// name: 每日油价.js
-// data: 2024-10-18
-// author: 叙白
-// desc: 自行设置你需要的省份
-
-async function output() {
-	// 省份名自行替换
-	return await getOilPrice('广东省');
-}
-
-async function getOilPrice(regionName) {
-	const url = 'https://v2.api-m.com/api/oilPrice'
-	const {data} = await $http({url: url});
-	const jsonData = JSON.parse(data);
-	const region = jsonData.data.filter(item => item.regionName === regionName)[0];
-	const prices = [
-  `92汽油: ${region.n92}元`,
-  `95汽油: ${region.n95}元`,
-  `98汽油: ${region.n98}元`,
-  `0号柴油: ${region.n0}元`
-];
-  return prices;
-}
-```
-## 汇率
-```js
-// author: 叙白
-// name: 汇率.js
-// data: 2024-09-26
-// 使用: 不在输入框中输入数字，直接点击按钮，则默认转换为 1 基准货币 兑 其他货币汇率。">
+/**
+ * 调用 BigModel 翻译 API
+ * @param {string} text - 需要翻译的文本
+ * @returns {Promise<string>} - 翻译后的文本
+ */
+async function bigModelTranslate(text) {
+  const messages = [
+    {
+      role: 'system',
+      content: 'You are a professional, authentic machine translation engine.',
+    },
+    {
+      role: 'user',
+      content: `; 把下一行文本作为纯文本输入，对该文本进行中文和外语的互译,仅输出翻译。">
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://xubai-owo.github.io/post/cang-shu-ru-fa-%28Hamster%29%20-zi-yong-jiao-ben.html">
 <meta property="og:image" content="https://github.githubassets.com/favicons/favicon.svg">
@@ -799,7 +125,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
     font-size: 12px;
 }
 </style>
-<style>.markdown-alert{padding:0.5rem 1rem;margin-bottom:1rem;border-left:.25em solid var(--borderColor-default,var(--color-border-default));}.markdown-alert .markdown-alert-title {display:flex;font-weight:var(--base-text-weight-medium,500);align-items:center;line-height:1;}.markdown-alert>:first-child {margin-top:0;}.markdown-alert>:last-child {margin-bottom:0;}</style><style>.markdown-alert.markdown-alert-tip {border-left-color:var(--borderColor-success-emphasis, var(--color-success-emphasis));background-color:var(--color-success-subtle);}.markdown-alert.markdown-alert-tip .markdown-alert-title {color: var(--fgColor-success,var(--color-success-fg));}</style>
+
 
 
 
@@ -829,22 +155,96 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 </div>
 </div>
     <div id="content">
-<div class="markdown-body" id="postBody"><h2>DeepSeek</h2>
-<div class="markdown-alert markdown-alert-tip"><p class="markdown-alert-title"><svg class="octicon octicon-light-bulb mr-2" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.207.245-.383.453-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM6 15.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z"></path></svg>Tip</p><p>请在脚本中的变量功能中添加 deepseek_key 变量，值为 DeepSeek 的 API Key</p>
-</div>
+<div class="markdown-body" id="postBody"><h2>BigModelTranslator.js</h2>
 <div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// author: 叙白</span>
-<span class="pl-c">// date: 2024-10-09</span>
+<span class="pl-c">// date: 2025-01-18</span>
+<span class="pl-c">// name: BigModelTranslator.js</span>
+<span class="pl-c">// 注意：请在脚本中的变量功能中添加 bigmodel_key 变量，值为 BigModel 的 API Key</span>
+
+<span class="pl-k">const</span> <span class="pl-c1">BASE_URL</span> <span class="pl-c1">=</span> <span class="pl-s">"https://open.bigmodel.cn/api/paas/v4/chat/completions"</span><span class="pl-kos">;</span>
+<span class="pl-k">const</span> <span class="pl-c1">DEFAULT_MODEL</span> <span class="pl-c1">=</span> <span class="pl-s">"glm-4-flash"</span><span class="pl-kos">;</span>
+<span class="pl-k">const</span> <span class="pl-c1">DEFAULT_TEMPERATURE</span> <span class="pl-c1">=</span> <span class="pl-c1">0.1</span><span class="pl-kos">;</span>
+
+<span class="pl-c">/**</span>
+<span class="pl-c"> * 主函数，用于处理输入并输出翻译结果</span>
+<span class="pl-c"> */</span>
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">output</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+  <span class="pl-k">var</span> <span class="pl-s1">text</span> <span class="pl-c1">=</span> <span class="pl-s1">$searchText</span> <span class="pl-c1">||</span> <span class="pl-s1">$pasteboardContent</span><span class="pl-kos">;</span>
+  <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-c1">!</span><span class="pl-s1">text</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+    <span class="pl-k">return</span> <span class="pl-s">""</span><span class="pl-kos">;</span>
+  <span class="pl-kos">}</span>
+  <span class="pl-k">return</span> <span class="pl-k">await</span> <span class="pl-en">bigModelTranslate</span><span class="pl-kos">(</span><span class="pl-s1">text</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span>
+
+<span class="pl-c">/**</span>
+<span class="pl-c"> * 调用 BigModel 翻译 API</span>
+<span class="pl-c"> * <span class="pl-k">@param</span> {<span class="pl-smi">string</span>} text - 需要翻译的文本</span>
+<span class="pl-c"> * <span class="pl-k">@returns</span> {<span class="pl-smi">Promise&lt;string&gt;</span>} - 翻译后的文本</span>
+<span class="pl-c"> */</span>
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">bigModelTranslate</span><span class="pl-kos">(</span><span class="pl-s1">text</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+  <span class="pl-k">const</span> <span class="pl-s1">messages</span> <span class="pl-c1">=</span> <span class="pl-kos">[</span>
+    <span class="pl-kos">{</span>
+      <span class="pl-c1">role</span>: <span class="pl-s">"system"</span><span class="pl-kos">,</span>
+      <span class="pl-c1">content</span>: <span class="pl-s">"You are a professional, authentic machine translation engine."</span><span class="pl-kos">,</span>
+    <span class="pl-kos">}</span><span class="pl-kos">,</span>
+    <span class="pl-kos">{</span>
+      <span class="pl-c1">role</span>: <span class="pl-s">"user"</span><span class="pl-kos">,</span>
+      <span class="pl-c1">content</span>: <span class="pl-s">`; 把下一行文本作为纯文本输入，对该文本进行中文和外语的互译,仅输出翻译。如果某些内容无需翻译（如专有名词、代码等），则保持原文不变。 不要解释，输入文本:\n<span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">text</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">,</span>
+    <span class="pl-kos">}</span><span class="pl-kos">,</span>
+  <span class="pl-kos">]</span><span class="pl-kos">;</span>
+
+  <span class="pl-k">try</span> <span class="pl-kos">{</span>
+    <span class="pl-k">const</span> <span class="pl-s1">response</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span>
+      <span class="pl-c1">url</span>: <span class="pl-c1">BASE_URL</span><span class="pl-kos">,</span>
+      <span class="pl-c1">method</span>: <span class="pl-s">"POST"</span><span class="pl-kos">,</span>
+      <span class="pl-c1">header</span>: <span class="pl-kos">{</span>
+        <span class="pl-s">"Content-Type"</span>: <span class="pl-s">"application/json"</span><span class="pl-kos">,</span>
+        <span class="pl-c1">Authorization</span>: <span class="pl-s">`Bearer <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">$bigmodel_key</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">,</span>
+      <span class="pl-kos">}</span><span class="pl-kos">,</span>
+      <span class="pl-c1">body</span>: <span class="pl-kos">{</span>
+        messages<span class="pl-kos">,</span>
+        <span class="pl-c1">model</span>: <span class="pl-c1">DEFAULT_MODEL</span><span class="pl-kos">,</span>
+        <span class="pl-c1">temperature</span>: <span class="pl-c1">DEFAULT_TEMPERATURE</span><span class="pl-kos">,</span>
+        <span class="pl-c1">top_p</span>: <span class="pl-c1">0.1</span><span class="pl-kos">,</span>
+        <span class="pl-c1">max_tokens</span>: <span class="pl-c1">2048</span><span class="pl-kos">,</span>
+      <span class="pl-kos">}</span><span class="pl-kos">,</span>
+      <span class="pl-c1">timeout</span>: <span class="pl-c1">30</span><span class="pl-kos">,</span>
+    <span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+
+    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">.</span><span class="pl-c1">statusCode</span> <span class="pl-c1">!==</span> <span class="pl-c1">200</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+      <span class="pl-k">throw</span> <span class="pl-k">new</span> <span class="pl-v">Error</span><span class="pl-kos">(</span><span class="pl-s">`API请求失败: HTTP状态码 <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">.</span><span class="pl-c1">statusCode</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-kos">}</span>
+
+    <span class="pl-k">const</span> <span class="pl-s1">responseData</span> <span class="pl-c1">=</span> <span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">parse</span><span class="pl-kos">(</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-c1">!</span><span class="pl-s1">responseData</span><span class="pl-kos">.</span><span class="pl-c1">choices</span> <span class="pl-c1">||</span> <span class="pl-s1">responseData</span><span class="pl-kos">.</span><span class="pl-c1">choices</span><span class="pl-kos">.</span><span class="pl-c1">length</span> <span class="pl-c1">===</span> <span class="pl-c1">0</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+      <span class="pl-k">throw</span> <span class="pl-k">new</span> <span class="pl-v">Error</span><span class="pl-kos">(</span><span class="pl-s">"API返回数据格式错误: 没有找到有效的回复"</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-kos">}</span>
+
+    <span class="pl-c">// 返回翻译后的内容</span>
+    <span class="pl-k">return</span> <span class="pl-s1">responseData</span><span class="pl-kos">.</span><span class="pl-c1">choices</span><span class="pl-kos">[</span><span class="pl-c1">0</span><span class="pl-kos">]</span><span class="pl-kos">.</span><span class="pl-c1">message</span><span class="pl-kos">?.</span><span class="pl-c1">content</span> <span class="pl-c1">||</span> <span class="pl-s">""</span><span class="pl-kos">;</span>
+  <span class="pl-kos">}</span> <span class="pl-k">catch</span> <span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+    <span class="pl-k">const</span> <span class="pl-s1">errorMessage</span> <span class="pl-c1">=</span>
+      <span class="pl-s1">error</span> <span class="pl-k">instanceof</span> <span class="pl-v">SyntaxError</span>
+        ? <span class="pl-s">"API返回的数据无法解析为JSON"</span>
+        : <span class="pl-s1">error</span><span class="pl-kos">.</span><span class="pl-c1">message</span> <span class="pl-c1">||</span> <span class="pl-s">"未知错误"</span><span class="pl-kos">;</span>
+    <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s">`BigModel API 错误: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">errorMessage</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+      <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s">`响应详情: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">stringify</span><span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">)</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-kos">}</span>
+    <span class="pl-k">return</span> <span class="pl-s">`抱歉，发生了错误: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">errorMessage</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
+  <span class="pl-kos">}</span>
+<span class="pl-kos">}</span></pre></div>
+<h2>DeepSeek.js</h2>
+<div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// author: 叙白</span>
+<span class="pl-c">// date: 2025-01-19</span>
 <span class="pl-c">// name: DeepSeek.js</span>
 <span class="pl-c">// 注意：请在脚本中的变量功能中添加 deepseek_key 变量，值为 DeepSeek 的 API Key</span>
-<span class="pl-c">// 如果您使用转发平台的 API ，则值为转发平台的 API Key, 并且修改BASE_URL</span>
-<span class="pl-c">// 此脚本仅兼容openai格式(openai, deepseek, kimi以及更多兼容openai格式的都可使用，温度需要根据各家ai自行调整)</span>
+<span class="pl-c">// 如果您使用转发平台的 API ，则值为转发平台的 API Key, 并且修改 BASE_URL</span>
+<span class="pl-c">// 此脚本仅兼容 OpenAI 格式 (openai, deepseek, kimi 以及更多兼容 OpenAI 格式的都可使用，温度需要根据各家 AI 自行调整)</span>
 
-<span class="pl-c">// 依次为base_url, 默认模型，默认温度，不懂请勿修改</span>
 <span class="pl-k">const</span> <span class="pl-c1">BASE_URL</span> <span class="pl-c1">=</span> <span class="pl-s">"https://api.deepseek.com/v1/chat/completions"</span><span class="pl-kos">;</span>
 <span class="pl-k">const</span> <span class="pl-c1">DEFAULT_MODEL</span> <span class="pl-c1">=</span> <span class="pl-s">"deepseek-chat"</span><span class="pl-kos">;</span>
-
-<span class="pl-c">// 不同任务类型的推荐温度值：代码生成/数学解题 0.0, 数据抽取/分析 1.0, 通用对话 1.3, 翻译 1.3, 创意类写作/诗歌创作 1.5</span>
-<span class="pl-k">const</span> <span class="pl-c1">DEFAULT_TEMPERATURE</span> <span class="pl-c1">=</span> <span class="pl-c1">1.3</span><span class="pl-kos">;</span>
+<span class="pl-k">const</span> <span class="pl-c1">DEFAULT_TEMPERATURE</span> <span class="pl-c1">=</span> <span class="pl-c1">1.3</span><span class="pl-kos">;</span> <span class="pl-c">// 通用对话推荐温度</span>
 
 <span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">deepseekDemo</span><span class="pl-kos">(</span><span class="pl-s1">question</span> <span class="pl-c1">=</span> <span class="pl-s">"你好"</span><span class="pl-kos">,</span> <span class="pl-s1">options</span> <span class="pl-c1">=</span> <span class="pl-kos">{</span><span class="pl-kos">}</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
   <span class="pl-k">const</span> <span class="pl-kos">{</span>
@@ -853,7 +253,6 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
     isShortAnswer <span class="pl-c1">=</span> <span class="pl-c1">!</span><span class="pl-s1">question</span><span class="pl-kos">.</span><span class="pl-en">endsWith</span><span class="pl-kos">(</span><span class="pl-s">'-'</span><span class="pl-kos">)</span>  <span class="pl-c">// 默认简短回答</span>
   <span class="pl-kos">}</span> <span class="pl-c1">=</span> <span class="pl-s1">options</span><span class="pl-kos">;</span>
 
-  <span class="pl-c">// 可自定义systemPrompt，在你的问题结尾后加-号，会自动帮你转短问</span>
   <span class="pl-k">const</span> <span class="pl-s1">systemPrompt</span> <span class="pl-c1">=</span> <span class="pl-s">`你是一位AI助手，能够回答的专业以及准确<span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">isShortAnswer</span> ? <span class="pl-s">"，现在请尽量用一句话回答我的问题"</span> : <span class="pl-s">""</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
 
   <span class="pl-k">const</span> <span class="pl-s1">messages</span> <span class="pl-c1">=</span> <span class="pl-kos">[</span>
@@ -862,9 +261,9 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
   <span class="pl-kos">]</span><span class="pl-kos">;</span>
 
   <span class="pl-k">try</span> <span class="pl-kos">{</span>
-    <span class="pl-k">const</span> <span class="pl-s1">resp</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span>
+    <span class="pl-k">const</span> <span class="pl-s1">response</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span>
       <span class="pl-c1">url</span>: <span class="pl-c1">BASE_URL</span><span class="pl-kos">,</span>
-      <span class="pl-c1">method</span>: <span class="pl-s">"post"</span><span class="pl-kos">,</span>
+      <span class="pl-c1">method</span>: <span class="pl-s">"POST"</span><span class="pl-kos">,</span>
       <span class="pl-c1">header</span>: <span class="pl-kos">{</span>
         <span class="pl-s">"Content-Type"</span>: <span class="pl-s">"application/json"</span><span class="pl-kos">,</span>
         <span class="pl-c1">Authorization</span>: <span class="pl-s">`Bearer <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">$deepseek_key</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">,</span>
@@ -873,24 +272,34 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
       <span class="pl-c1">timeout</span>: <span class="pl-c1">30</span><span class="pl-kos">,</span>
     <span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
 
-    <span class="pl-k">const</span> <span class="pl-s1">statusCode</span> <span class="pl-c1">=</span> <span class="pl-s1">resp</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">.</span><span class="pl-c1">statusCode</span><span class="pl-kos">;</span>
-    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">statusCode</span> <span class="pl-c1">!==</span> <span class="pl-c1">200</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-      <span class="pl-k">throw</span> <span class="pl-k">new</span> <span class="pl-v">Error</span><span class="pl-kos">(</span><span class="pl-s">`API请求失败: HTTP状态码 <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">statusCode</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-c">// 检查 HTTP 状态码</span>
+    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">.</span><span class="pl-c1">statusCode</span> <span class="pl-c1">!==</span> <span class="pl-c1">200</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+      <span class="pl-k">const</span> <span class="pl-s1">errorMessage</span> <span class="pl-c1">=</span> <span class="pl-s">`API请求失败: HTTP状态码 <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">.</span><span class="pl-c1">statusCode</span><span class="pl-kos">}</span></span>, 响应数据: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
+      <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s">`DeepSeek API 错误: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">errorMessage</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+      <span class="pl-k">return</span> <span class="pl-s">`抱歉，发生了错误: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">errorMessage</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
     <span class="pl-kos">}</span>
 
-    <span class="pl-k">const</span> <span class="pl-s1">parsedData</span> <span class="pl-c1">=</span> <span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">parse</span><span class="pl-kos">(</span><span class="pl-s1">resp</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-c1">!</span><span class="pl-s1">parsedData</span><span class="pl-kos">.</span><span class="pl-c1">choices</span> <span class="pl-c1">||</span> <span class="pl-s1">parsedData</span><span class="pl-kos">.</span><span class="pl-c1">choices</span><span class="pl-kos">.</span><span class="pl-c1">length</span> <span class="pl-c1">===</span> <span class="pl-c1">0</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-      <span class="pl-k">throw</span> <span class="pl-k">new</span> <span class="pl-v">Error</span><span class="pl-kos">(</span><span class="pl-s">'API返回数据格式错误: 没有找到有效的回复'</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-c">// 解析响应数据</span>
+    <span class="pl-k">let</span> <span class="pl-s1">responseData</span><span class="pl-kos">;</span>
+    <span class="pl-k">try</span> <span class="pl-kos">{</span>
+      <span class="pl-s1">responseData</span> <span class="pl-c1">=</span> <span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">parse</span><span class="pl-kos">(</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-kos">}</span> <span class="pl-k">catch</span> <span class="pl-kos">(</span><span class="pl-s1">parseError</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+      <span class="pl-k">const</span> <span class="pl-s1">errorMessage</span> <span class="pl-c1">=</span> <span class="pl-s">`API返回的数据无法解析为JSON: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
+      <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s">`DeepSeek API 错误: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">errorMessage</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+      <span class="pl-k">return</span> <span class="pl-s">`抱歉，发生了错误: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">errorMessage</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
     <span class="pl-kos">}</span>
 
-    <span class="pl-k">return</span> <span class="pl-s1">parsedData</span><span class="pl-kos">.</span><span class="pl-c1">choices</span><span class="pl-kos">[</span><span class="pl-c1">0</span><span class="pl-kos">]</span><span class="pl-kos">.</span><span class="pl-c1">message</span><span class="pl-kos">?.</span><span class="pl-c1">content</span> <span class="pl-c1">||</span> <span class="pl-s">""</span><span class="pl-kos">;</span>
+    <span class="pl-c">// 检查响应数据格式</span>
+    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-c1">!</span><span class="pl-s1">responseData</span><span class="pl-kos">.</span><span class="pl-c1">choices</span> <span class="pl-c1">||</span> <span class="pl-s1">responseData</span><span class="pl-kos">.</span><span class="pl-c1">choices</span><span class="pl-kos">.</span><span class="pl-c1">length</span> <span class="pl-c1">===</span> <span class="pl-c1">0</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+      <span class="pl-k">const</span> <span class="pl-s1">errorMessage</span> <span class="pl-c1">=</span> <span class="pl-s">`API返回数据格式错误: 没有找到有效的回复, 完整响应: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">stringify</span><span class="pl-kos">(</span><span class="pl-s1">responseData</span><span class="pl-kos">)</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
+      <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s">`DeepSeek API 错误: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">errorMessage</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+      <span class="pl-k">return</span> <span class="pl-s">`抱歉，发生了错误: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">errorMessage</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
+    <span class="pl-kos">}</span>
+
+    <span class="pl-k">return</span> <span class="pl-s1">responseData</span><span class="pl-kos">.</span><span class="pl-c1">choices</span><span class="pl-kos">[</span><span class="pl-c1">0</span><span class="pl-kos">]</span><span class="pl-kos">.</span><span class="pl-c1">message</span><span class="pl-kos">?.</span><span class="pl-c1">content</span> <span class="pl-c1">||</span> <span class="pl-s">""</span><span class="pl-kos">;</span>
   <span class="pl-kos">}</span> <span class="pl-k">catch</span> <span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-    <span class="pl-k">let</span> <span class="pl-s1">errorMessage</span> <span class="pl-c1">=</span> <span class="pl-s">'未知错误'</span><span class="pl-kos">;</span>
-    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">error</span> <span class="pl-k">instanceof</span> <span class="pl-v">SyntaxError</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-      <span class="pl-s1">errorMessage</span> <span class="pl-c1">=</span> <span class="pl-s">'API返回的数据无法解析为JSON'</span><span class="pl-kos">;</span>
-    <span class="pl-kos">}</span> <span class="pl-k">else</span> <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">.</span><span class="pl-c1">message</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-      <span class="pl-s1">errorMessage</span> <span class="pl-c1">=</span> <span class="pl-s1">error</span><span class="pl-kos">.</span><span class="pl-c1">message</span><span class="pl-kos">;</span>
-    <span class="pl-kos">}</span>
+    <span class="pl-c">// 捕获其他未知错误</span>
+    <span class="pl-k">const</span> <span class="pl-s1">errorMessage</span> <span class="pl-c1">=</span> <span class="pl-s1">error</span><span class="pl-kos">.</span><span class="pl-c1">message</span> <span class="pl-c1">||</span> <span class="pl-s">'未知错误'</span><span class="pl-kos">;</span>
     <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s">`DeepSeek API 错误: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">errorMessage</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
     <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
       <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s">`响应详情: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">stringify</span><span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">)</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
@@ -900,12 +309,121 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <span class="pl-kos">}</span>
 
 <span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">output</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+  <span class="pl-c">// 优先使用 $searchText，如果没有则使用 $pasteboardContent，最后使用默认值 "你好"</span>
   <span class="pl-k">const</span> <span class="pl-s1">question</span> <span class="pl-c1">=</span> <span class="pl-s1">$searchText</span> <span class="pl-c1">||</span> <span class="pl-s1">$pasteboardContent</span> <span class="pl-c1">||</span> <span class="pl-s">"你好"</span><span class="pl-kos">;</span>
   <span class="pl-k">return</span> <span class="pl-k">await</span> <span class="pl-en">deepseekDemo</span><span class="pl-kos">(</span><span class="pl-s1">question</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
 <span class="pl-kos">}</span></pre></div>
-<h2>Gemini</h2>
-<div class="markdown-alert markdown-alert-tip"><p class="markdown-alert-title"><svg class="octicon octicon-light-bulb mr-2" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.207.245-.383.453-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM6 15.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z"></path></svg>Tip</p><p>请在脚本中的变量功能中添加 gemini_key 变量，值为 Gemini 的 API Key</p>
-</div>
+<h2>Deeplx.js</h2>
+<div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// author: 叙白</span>
+<span class="pl-c">// date: 2024-09-25</span>
+<span class="pl-c">// name: Deeplx.js</span>
+<span class="pl-c">// 注意: 需添加变量deeplx_key</span>
+<span class="pl-c">// 使用： 要翻译成英文或中文，在翻译文本前加“中/英”， 例： 中我要回家，将会翻译成英文</span>
+
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">output</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+  <span class="pl-k">const</span> <span class="pl-s1">text</span> <span class="pl-c1">=</span> <span class="pl-s1">$searchText</span> <span class="pl-c1">||</span> <span class="pl-s1">$pasteboardContent</span><span class="pl-kos">;</span>
+  <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-c1">!</span><span class="pl-s1">text</span><span class="pl-kos">)</span> <span class="pl-k">return</span> <span class="pl-c1">null</span><span class="pl-kos">;</span> <span class="pl-c">// 检查输入是否为空</span>
+
+  <span class="pl-k">const</span> <span class="pl-s1">langMap</span> <span class="pl-c1">=</span> <span class="pl-kos">{</span>
+    <span class="pl-s">"中"</span>: <span class="pl-s">"ZH"</span><span class="pl-kos">,</span>
+    <span class="pl-s">"英"</span>: <span class="pl-s">"EN"</span>
+  <span class="pl-kos">}</span><span class="pl-kos">;</span>
+
+  <span class="pl-k">const</span> <span class="pl-s1">target</span> <span class="pl-c1">=</span> <span class="pl-s1">langMap</span><span class="pl-kos">[</span><span class="pl-s1">text</span><span class="pl-kos">[</span><span class="pl-c1">0</span><span class="pl-kos">]</span><span class="pl-kos">]</span><span class="pl-kos">;</span> <span class="pl-c">// 根据首字符映射语言</span>
+  <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-c1">!</span><span class="pl-s1">target</span><span class="pl-kos">)</span> <span class="pl-k">return</span> <span class="pl-c1">null</span><span class="pl-kos">;</span> <span class="pl-c">// 如果没有匹配到对应语言，直接返回</span>
+
+  <span class="pl-k">const</span> <span class="pl-s1">payload</span> <span class="pl-c1">=</span> <span class="pl-kos">{</span>
+    <span class="pl-c1">text</span>: <span class="pl-s1">text</span><span class="pl-kos">.</span><span class="pl-en">slice</span><span class="pl-kos">(</span><span class="pl-c1">1</span><span class="pl-kos">)</span><span class="pl-kos">,</span>
+    <span class="pl-c1">source_lang</span>: <span class="pl-s">"auto"</span><span class="pl-kos">,</span>
+    <span class="pl-c1">target_lang</span>: <span class="pl-s1">target</span>
+  <span class="pl-kos">}</span><span class="pl-kos">;</span>
+
+  <span class="pl-k">try</span> <span class="pl-kos">{</span>
+    <span class="pl-k">const</span> <span class="pl-s1">response</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span>
+      <span class="pl-c1">url</span>: <span class="pl-s">`https://api.deeplx.org/<span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">$deeplx_key</span><span class="pl-kos">}</span></span>/translate`</span><span class="pl-kos">,</span>
+      <span class="pl-c1">method</span>: <span class="pl-s">'POST'</span><span class="pl-kos">,</span>
+      <span class="pl-c1">header</span>: <span class="pl-kos">{</span> <span class="pl-s">'Content-Type'</span>: <span class="pl-s">'application/json'</span> <span class="pl-kos">}</span><span class="pl-kos">,</span>
+      <span class="pl-c1">body</span>: <span class="pl-s1">payload</span><span class="pl-kos">,</span>
+    <span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+
+    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">.</span><span class="pl-c1">statusCode</span> <span class="pl-c1">!==</span> <span class="pl-c1">200</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+      <span class="pl-k">return</span> <span class="pl-s">"请求失败"</span><span class="pl-kos">;</span>
+    <span class="pl-kos">}</span>
+
+    <span class="pl-k">return</span> <span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">parse</span><span class="pl-kos">(</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">;</span>
+  <span class="pl-kos">}</span> <span class="pl-k">catch</span> <span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+    <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">return</span> <span class="pl-c1">null</span><span class="pl-kos">;</span>
+  <span class="pl-kos">}</span>
+<span class="pl-kos">}</span></pre></div>
+<h2>Deeplx中外互译.js</h2>
+<div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// author: 叙白</span>
+<span class="pl-c">// date: 2024-09-28</span>
+<span class="pl-c">// name: Deeplx中外互译.js</span>
+<span class="pl-c">// 注意: 需添加变量deeplx_key</span>
+<span class="pl-c">// 使用： 要翻译成英文或中文，在翻译文本前加“中/英”， 例： 中我要回家，将会翻译成英文</span>
+
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">output</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+  <span class="pl-k">const</span> <span class="pl-s1">text</span> <span class="pl-c1">=</span> <span class="pl-s1">$searchText</span> <span class="pl-c1">||</span> <span class="pl-s1">$pasteboardContent</span> <span class="pl-c1">||</span> <span class="pl-s">"测试文本"</span><span class="pl-kos">;</span>
+  <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-c1">!</span><span class="pl-s1">text</span><span class="pl-kos">)</span> <span class="pl-k">return</span> <span class="pl-s">"请输入要翻译的文本"</span><span class="pl-kos">;</span> <span class="pl-c">// 检查输入是否为空</span>
+
+
+  <span class="pl-k">let</span> <span class="pl-s1">target</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">detectLang</span><span class="pl-kos">(</span><span class="pl-s1">text</span><span class="pl-kos">)</span><span class="pl-kos">;</span> <span class="pl-c">// 自动检测语言并翻译</span>
+  <span class="pl-k">let</span> <span class="pl-s1">translatedText</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">translate</span><span class="pl-kos">(</span><span class="pl-s1">text</span><span class="pl-kos">,</span> <span class="pl-s1">target</span><span class="pl-kos">)</span><span class="pl-kos">;</span> <span class="pl-c">// 翻译文本</span>
+  <span class="pl-k">return</span> <span class="pl-s1">translatedText</span><span class="pl-kos">;</span>
+  
+<span class="pl-kos">}</span>
+
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">detectLang</span><span class="pl-kos">(</span><span class="pl-s1">text</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+  <span class="pl-k">try</span> <span class="pl-kos">{</span>
+    <span class="pl-k">const</span> <span class="pl-s1">url</span> <span class="pl-c1">=</span> <span class="pl-s">`https://translate.googleapis.com/translate_a/single?client=gtx&amp;sl=auto&amp;tl=auto&amp;dt=t&amp;q=<span class="pl-s1"><span class="pl-kos">${</span><span class="pl-en">encodeURIComponent</span><span class="pl-kos">(</span><span class="pl-s1">text</span><span class="pl-kos">)</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
+		<span class="pl-c">// 第一次调用 googleTranslate 函数，检测并翻译文本</span>
+    <span class="pl-k">const</span> <span class="pl-s1">resp</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span>
+      url<span class="pl-kos">,</span>
+      <span class="pl-c1">header</span>: <span class="pl-kos">{</span><span class="pl-s">"Content-Type"</span>: <span class="pl-s">"application/json"</span><span class="pl-kos">}</span>
+      <span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+
+    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">resp</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">.</span><span class="pl-c1">statusCode</span> <span class="pl-c1">!==</span> <span class="pl-c1">200</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+      <span class="pl-k">return</span> <span class="pl-s">"翻译失败"</span><span class="pl-kos">;</span>
+    <span class="pl-kos">}</span>
+
+    <span class="pl-k">const</span> <span class="pl-s1">jsonDict</span> <span class="pl-c1">=</span> <span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">parse</span><span class="pl-kos">(</span><span class="pl-s1">resp</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">const</span> <span class="pl-s1">detectedLang</span> <span class="pl-c1">=</span> <span class="pl-s1">jsonDict</span><span class="pl-kos">[</span><span class="pl-c1">2</span><span class="pl-kos">]</span><span class="pl-kos">;</span> <span class="pl-c">// 这个字段包含检测到的源语言</span>
+
+    <span class="pl-c">// 根据检测到的源语言决定目标语言</span>
+    <span class="pl-k">let</span> <span class="pl-s1">targetLang</span> <span class="pl-c1">=</span> <span class="pl-s1">detectedLang</span> <span class="pl-c1">===</span> <span class="pl-s">"zh-CN"</span> ? <span class="pl-s">"EN"</span> : <span class="pl-s">"ZH"</span><span class="pl-kos">;</span>
+    <span class="pl-k">return</span> <span class="pl-s1">targetLang</span><span class="pl-kos">;</span>
+  <span class="pl-kos">}</span> <span class="pl-k">catch</span> <span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+    <span class="pl-k">throw</span> <span class="pl-k">new</span> <span class="pl-v">Error</span><span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+  <span class="pl-kos">}</span>
+<span class="pl-kos">}</span>
+
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">translate</span><span class="pl-kos">(</span><span class="pl-s1">text</span><span class="pl-kos">,</span> <span class="pl-s1">target</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+  <span class="pl-k">const</span> <span class="pl-s1">payload</span> <span class="pl-c1">=</span> <span class="pl-kos">{</span>
+    <span class="pl-c1">text</span>: <span class="pl-s1">text</span><span class="pl-kos">,</span>
+    <span class="pl-c1">source_lang</span>: <span class="pl-s">"auto"</span><span class="pl-kos">,</span>
+    <span class="pl-c1">target_lang</span>: <span class="pl-s1">target</span>
+  <span class="pl-kos">}</span><span class="pl-kos">;</span>
+
+  <span class="pl-k">try</span> <span class="pl-kos">{</span>
+    <span class="pl-k">const</span> <span class="pl-s1">response</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span>
+      <span class="pl-c1">url</span>: <span class="pl-s">`https://api.deeplx.org/<span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">$deeplx_key</span><span class="pl-kos">}</span></span>/translate`</span><span class="pl-kos">,</span>
+      <span class="pl-c1">method</span>: <span class="pl-s">'POST'</span><span class="pl-kos">,</span>
+      <span class="pl-c1">header</span>: <span class="pl-kos">{</span> <span class="pl-s">'Content-Type'</span>: <span class="pl-s">'application/json'</span> <span class="pl-kos">}</span><span class="pl-kos">,</span>
+      <span class="pl-c1">body</span>: <span class="pl-s1">payload</span><span class="pl-kos">,</span>
+    <span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+
+    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">.</span><span class="pl-c1">statusCode</span> <span class="pl-c1">!==</span> <span class="pl-c1">200</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+      <span class="pl-k">return</span> <span class="pl-s">"请求失败"</span><span class="pl-kos">;</span>
+    <span class="pl-kos">}</span>
+    <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">return</span> <span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">parse</span><span class="pl-kos">(</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">;</span>
+  <span class="pl-kos">}</span> <span class="pl-k">catch</span> <span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+    <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">return</span> <span class="pl-c1">null</span><span class="pl-kos">;</span>
+  <span class="pl-kos">}</span>
+<span class="pl-kos">}</span></pre></div>
+<h2>Gemini.js</h2>
 <div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// author: 叙白</span>
 <span class="pl-c">// date: 2024-10-03</span>
 <span class="pl-c">// name: Gemini.js</span>
@@ -977,9 +495,37 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
   <span class="pl-k">const</span> <span class="pl-s1">question</span> <span class="pl-c1">=</span> <span class="pl-s1">$searchText</span> <span class="pl-c1">||</span> <span class="pl-s1">$pasteboardContent</span> <span class="pl-c1">||</span> <span class="pl-s">"你好-"</span><span class="pl-kos">;</span>
   <span class="pl-k">return</span> <span class="pl-k">await</span> <span class="pl-en">geminiDemo</span><span class="pl-kos">(</span><span class="pl-s1">question</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
 <span class="pl-kos">}</span></pre></div>
-<h2>Base64编解码</h2>
-<div class="markdown-alert markdown-alert-tip"><p class="markdown-alert-title"><svg class="octicon octicon-light-bulb mr-2" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.207.245-.383.453-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM6 15.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z"></path></svg>Tip</p><p>E需要编码的字符串/D需要解码的字符串</p>
-</div>
+<h2>Test.txt</h2>
+<div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// name: Test.txt</span>
+<span class="pl-s1">hshs</span></pre></div>
+<h2>Unicode.js</h2>
+<div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// author: 叙白</span>
+<span class="pl-c">// name: Unicode.js</span>
+<span class="pl-c">// date: 2024-09-26</span>
+
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">getUnicodeWithCharacter</span><span class="pl-kos">(</span><span class="pl-s1">str</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+    <span class="pl-k">let</span> <span class="pl-s1">unicodeArray</span> <span class="pl-c1">=</span> <span class="pl-kos">[</span><span class="pl-kos">]</span><span class="pl-kos">;</span>
+    <span class="pl-k">for</span> <span class="pl-kos">(</span><span class="pl-k">let</span> <span class="pl-s1">i</span> <span class="pl-c1">=</span> <span class="pl-c1">0</span><span class="pl-kos">;</span> <span class="pl-s1">i</span> <span class="pl-c1">&lt;</span> <span class="pl-s1">str</span><span class="pl-kos">.</span><span class="pl-c1">length</span><span class="pl-kos">;</span> <span class="pl-s1">i</span><span class="pl-c1">++</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+        <span class="pl-k">let</span> <span class="pl-s1">char</span> <span class="pl-c1">=</span> <span class="pl-s1">str</span><span class="pl-kos">[</span><span class="pl-s1">i</span><span class="pl-kos">]</span><span class="pl-kos">;</span>
+        <span class="pl-k">let</span> <span class="pl-s1">codePoint</span> <span class="pl-c1">=</span> <span class="pl-s1">str</span><span class="pl-kos">.</span><span class="pl-en">codePointAt</span><span class="pl-kos">(</span><span class="pl-s1">i</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        
+        <span class="pl-c">// Skip the next code unit if this character is a high surrogate</span>
+        <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">codePoint</span> <span class="pl-c1">&gt;</span> <span class="pl-c1">0xFFFF</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+            <span class="pl-s1">i</span><span class="pl-c1">++</span><span class="pl-kos">;</span>
+        <span class="pl-kos">}</span>
+        
+        <span class="pl-k">let</span> <span class="pl-s1">unicode</span> <span class="pl-c1">=</span> <span class="pl-s1">char</span> <span class="pl-c1">+</span> <span class="pl-s">': U+'</span> <span class="pl-c1">+</span> <span class="pl-s1">codePoint</span><span class="pl-kos">.</span><span class="pl-en">toString</span><span class="pl-kos">(</span><span class="pl-c1">16</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">toUpperCase</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-s1">unicodeArray</span><span class="pl-kos">.</span><span class="pl-en">push</span><span class="pl-kos">(</span><span class="pl-s1">unicode</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-kos">}</span>
+    <span class="pl-k">return</span> <span class="pl-s1">unicodeArray</span><span class="pl-kos">.</span><span class="pl-en">join</span><span class="pl-kos">(</span><span class="pl-s">'\n'</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span>
+
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">output</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+  <span class="pl-k">const</span> <span class="pl-s1">text</span> <span class="pl-c1">=</span> <span class="pl-s1">$searchText</span> <span class="pl-c1">||</span> <span class="pl-s1">$pasteboardContent</span><span class="pl-kos">;</span> 
+  <span class="pl-k">const</span> <span class="pl-s1">result</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">getUnicodeWithCharacter</span><span class="pl-kos">(</span><span class="pl-s1">text</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+  <span class="pl-k">return</span> <span class="pl-s1">result</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span></pre></div>
+<h2>base64编码解码.js</h2>
 <div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// author: 叙白</span>
 <span class="pl-c">// name: base64编码解码.js</span>
 <span class="pl-c">// date: 2024-09-25</span>
@@ -1049,119 +595,215 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
     <span class="pl-k">return</span> <span class="pl-s">"请输入正确的指令"</span><span class="pl-kos">;</span>
   <span class="pl-kos">}</span>
 <span class="pl-kos">}</span></pre></div>
-<h2>Deeplx</h2>
-<div class="markdown-alert markdown-alert-tip"><p class="markdown-alert-title"><svg class="octicon octicon-light-bulb mr-2" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.207.245-.383.453-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM6 15.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z"></path></svg>Tip</p><p>需添加变量deeplx_key</p>
-</div>
+<h2>getScript.js</h2>
 <div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// author: 叙白</span>
-<span class="pl-c">// date: 2024-09-25</span>
-<span class="pl-c">// name: Deeplx.js</span>
-<span class="pl-c">// 注意: 需添加变量deeplx_key</span>
-<span class="pl-c">// 使用： 要翻译成英文或中文，在翻译文本前加“中/英”， 例： 中我要回家，将会翻译成英文</span>
+<span class="pl-c">// name: getScript.js</span>
+<span class="pl-c">// date: 2024-09-26</span>
 
-<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">output</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-  <span class="pl-k">const</span> <span class="pl-s1">text</span> <span class="pl-c1">=</span> <span class="pl-s1">$searchText</span> <span class="pl-c1">||</span> <span class="pl-s1">$pasteboardContent</span><span class="pl-kos">;</span>
-  <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-c1">!</span><span class="pl-s1">text</span><span class="pl-kos">)</span> <span class="pl-k">return</span> <span class="pl-c1">null</span><span class="pl-kos">;</span> <span class="pl-c">// 检查输入是否为空</span>
-
-  <span class="pl-k">const</span> <span class="pl-s1">langMap</span> <span class="pl-c1">=</span> <span class="pl-kos">{</span>
-    <span class="pl-s">"中"</span>: <span class="pl-s">"ZH"</span><span class="pl-kos">,</span>
-    <span class="pl-s">"英"</span>: <span class="pl-s">"EN"</span>
-  <span class="pl-kos">}</span><span class="pl-kos">;</span>
-
-  <span class="pl-k">const</span> <span class="pl-s1">target</span> <span class="pl-c1">=</span> <span class="pl-s1">langMap</span><span class="pl-kos">[</span><span class="pl-s1">text</span><span class="pl-kos">[</span><span class="pl-c1">0</span><span class="pl-kos">]</span><span class="pl-kos">]</span><span class="pl-kos">;</span> <span class="pl-c">// 根据首字符映射语言</span>
-  <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-c1">!</span><span class="pl-s1">target</span><span class="pl-kos">)</span> <span class="pl-k">return</span> <span class="pl-c1">null</span><span class="pl-kos">;</span> <span class="pl-c">// 如果没有匹配到对应语言，直接返回</span>
-
-  <span class="pl-k">const</span> <span class="pl-s1">payload</span> <span class="pl-c1">=</span> <span class="pl-kos">{</span>
-    <span class="pl-c1">text</span>: <span class="pl-s1">text</span><span class="pl-kos">.</span><span class="pl-en">slice</span><span class="pl-kos">(</span><span class="pl-c1">1</span><span class="pl-kos">)</span><span class="pl-kos">,</span>
-    <span class="pl-c1">source_lang</span>: <span class="pl-s">"auto"</span><span class="pl-kos">,</span>
-    <span class="pl-c1">target_lang</span>: <span class="pl-s1">target</span>
-  <span class="pl-kos">}</span><span class="pl-kos">;</span>
-
-  <span class="pl-k">try</span> <span class="pl-kos">{</span>
-    <span class="pl-k">const</span> <span class="pl-s1">response</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span>
-      <span class="pl-c1">url</span>: <span class="pl-s">`https://api.deeplx.org/<span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">$deeplx_key</span><span class="pl-kos">}</span></span>/translate`</span><span class="pl-kos">,</span>
-      <span class="pl-c1">method</span>: <span class="pl-s">'POST'</span><span class="pl-kos">,</span>
-      <span class="pl-c1">header</span>: <span class="pl-kos">{</span> <span class="pl-s">'Content-Type'</span>: <span class="pl-s">'application/json'</span> <span class="pl-kos">}</span><span class="pl-kos">,</span>
-      <span class="pl-c1">body</span>: <span class="pl-s1">payload</span><span class="pl-kos">,</span>
-    <span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-
-    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">.</span><span class="pl-c1">statusCode</span> <span class="pl-c1">!==</span> <span class="pl-c1">200</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-      <span class="pl-k">return</span> <span class="pl-s">"请求失败"</span><span class="pl-kos">;</span>
+<span class="pl-k">function</span> <span class="pl-en">toRawGitHubLink</span><span class="pl-kos">(</span><span class="pl-s1">url</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">url</span><span class="pl-kos">.</span><span class="pl-en">includes</span><span class="pl-kos">(</span><span class="pl-s">'github.com'</span><span class="pl-kos">)</span> <span class="pl-c1">&amp;&amp;</span> <span class="pl-s1">url</span><span class="pl-kos">.</span><span class="pl-en">includes</span><span class="pl-kos">(</span><span class="pl-s">'/blob/'</span><span class="pl-kos">)</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+        <span class="pl-k">return</span> <span class="pl-s1">url</span><span class="pl-kos">.</span><span class="pl-en">replace</span><span class="pl-kos">(</span><span class="pl-s">'github.com'</span><span class="pl-kos">,</span> <span class="pl-s">'raw.githubusercontent.com'</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">replace</span><span class="pl-kos">(</span><span class="pl-s">'/blob/'</span><span class="pl-kos">,</span> <span class="pl-s">'/'</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
     <span class="pl-kos">}</span>
-
-    <span class="pl-k">return</span> <span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">parse</span><span class="pl-kos">(</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">;</span>
-  <span class="pl-kos">}</span> <span class="pl-k">catch</span> <span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-    <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-    <span class="pl-k">return</span> <span class="pl-c1">null</span><span class="pl-kos">;</span>
-  <span class="pl-kos">}</span>
-<span class="pl-kos">}</span></pre></div>
-<h3>Deeplx中英自动翻译</h3>
-<div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// author: 叙白</span>
-<span class="pl-c">// date: 2024-09-28</span>
-<span class="pl-c">// name: Deeplx中外互译.js</span>
-<span class="pl-c">// 注意: 需添加变量deeplx_key</span>
-<span class="pl-c">// 使用：输入中文自动翻译成英文，输入非中文自动翻译成中文</span>
-
-<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">output</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-  <span class="pl-k">const</span> <span class="pl-s1">text</span> <span class="pl-c1">=</span> <span class="pl-s1">$searchText</span> <span class="pl-c1">||</span> <span class="pl-s1">$pasteboardContent</span> <span class="pl-c1">||</span> <span class="pl-s">"测试文本"</span><span class="pl-kos">;</span>
-  <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-c1">!</span><span class="pl-s1">text</span><span class="pl-kos">)</span> <span class="pl-k">return</span> <span class="pl-s">"请输入要翻译的文本"</span><span class="pl-kos">;</span> <span class="pl-c">// 检查输入是否为空</span>
-
-
-  <span class="pl-k">let</span> <span class="pl-s1">target</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">detectLang</span><span class="pl-kos">(</span><span class="pl-s1">text</span><span class="pl-kos">)</span><span class="pl-kos">;</span> <span class="pl-c">// 自动检测语言并翻译</span>
-  <span class="pl-k">let</span> <span class="pl-s1">translatedText</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">translate</span><span class="pl-kos">(</span><span class="pl-s1">text</span><span class="pl-kos">,</span> <span class="pl-s1">target</span><span class="pl-kos">)</span><span class="pl-kos">;</span> <span class="pl-c">// 翻译文本</span>
-  <span class="pl-k">return</span> <span class="pl-s1">translatedText</span><span class="pl-kos">;</span>
-  
+    <span class="pl-k">return</span> <span class="pl-s1">url</span><span class="pl-kos">;</span>
 <span class="pl-kos">}</span>
 
-<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">detectLang</span><span class="pl-kos">(</span><span class="pl-s1">text</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">output</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+    <span class="pl-k">const</span> <span class="pl-s1">url</span> <span class="pl-c1">=</span> <span class="pl-s1">$searchText</span> <span class="pl-c1">||</span> <span class="pl-s1">$pasteboardContent</span><span class="pl-kos">;</span>
+    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-c1">!</span><span class="pl-s1">url</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+        <span class="pl-k">return</span> <span class="pl-s">"请输入url"</span><span class="pl-kos">;</span>
+    <span class="pl-kos">}</span>
+    
+    <span class="pl-k">const</span> <span class="pl-s1">processedUrl</span> <span class="pl-c1">=</span> <span class="pl-en">toRawGitHubLink</span><span class="pl-kos">(</span><span class="pl-s1">url</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+
+    <span class="pl-k">try</span> <span class="pl-kos">{</span>
+        <span class="pl-k">const</span> <span class="pl-kos">{</span> data <span class="pl-kos">}</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span> <span class="pl-c1">url</span>: <span class="pl-s1">processedUrl</span> <span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-k">return</span> <span class="pl-s1">data</span><span class="pl-kos">;</span>
+    <span class="pl-kos">}</span> <span class="pl-k">catch</span> <span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+        <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-k">return</span> <span class="pl-s">"未知错误"</span><span class="pl-kos">;</span>
+    <span class="pl-kos">}</span>
+<span class="pl-kos">}</span></pre></div>
+<h2>发病语录.js</h2>
+<div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// name: 发病语录.js</span>
+<span class="pl-c">// date: 2024-10-18</span>
+<span class="pl-c">// desc: OI api</span>
+<span class="pl-c">// author: 叙白</span>
+
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">output</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+	<span class="pl-k">const</span> <span class="pl-s1">url</span> <span class="pl-c1">=</span> <span class="pl-s">"https://oiapi.net/API/SickL"</span><span class="pl-kos">;</span>
+	<span class="pl-k">return</span> <span class="pl-en">getMessage</span><span class="pl-kos">(</span><span class="pl-s1">url</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span>  
+
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">getMessage</span><span class="pl-kos">(</span><span class="pl-s1">url</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+	<span class="pl-k">const</span> <span class="pl-kos">{</span>data<span class="pl-kos">}</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span><span class="pl-c1">url</span>: <span class="pl-s1">url</span><span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+	<span class="pl-k">return</span> <span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">parse</span><span class="pl-kos">(</span><span class="pl-s1">data</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-c1">message</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span></pre></div>
+<h2>多合一.js</h2>
+<div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// name: 多合一.js</span>
+
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">output</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
   <span class="pl-k">try</span> <span class="pl-kos">{</span>
-    <span class="pl-k">const</span> <span class="pl-s1">url</span> <span class="pl-c1">=</span> <span class="pl-s">`https://translate.googleapis.com/translate_a/single?client=gtx&amp;sl=auto&amp;tl=auto&amp;dt=t&amp;q=<span class="pl-s1"><span class="pl-kos">${</span><span class="pl-en">encodeURIComponent</span><span class="pl-kos">(</span><span class="pl-s1">text</span><span class="pl-kos">)</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
-		<span class="pl-c">// 第一次调用 googleTranslate 函数，检测并翻译文本</span>
+    <span class="pl-c">// 使用 Promise.all 并行执行所有异步函数</span>
+    <span class="pl-k">const</span> <span class="pl-s1">results</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-v">Promise</span><span class="pl-kos">.</span><span class="pl-en">all</span><span class="pl-kos">(</span><span class="pl-kos">[</span>
+      <span class="pl-en">tiangou</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">,</span>
+      <span class="pl-en">yiyan</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">,</span>
+      <span class="pl-en">yulu</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">,</span>
+      <span class="pl-en">fkxqs</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">,</span>
+      <span class="pl-en">dujitang</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">,</span>
+      <span class="pl-en">tapped</span><span class="pl-kos">(</span><span class="pl-kos">)</span>
+    <span class="pl-kos">]</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+
+    <span class="pl-c">// 遍历结果并输出</span>
+    <span class="pl-k">let</span> <span class="pl-s1">resulList</span> <span class="pl-c1">=</span> <span class="pl-kos">[</span><span class="pl-kos">]</span><span class="pl-kos">;</span>
+    <span class="pl-s1">results</span><span class="pl-kos">.</span><span class="pl-en">forEach</span><span class="pl-kos">(</span><span class="pl-kos">(</span><span class="pl-s1">result</span><span class="pl-kos">,</span> <span class="pl-s1">index</span><span class="pl-kos">)</span> <span class="pl-c1">=&gt;</span> <span class="pl-kos">{</span>
+      <span class="pl-s1">resulList</span><span class="pl-kos">.</span><span class="pl-en">push</span><span class="pl-kos">(</span><span class="pl-s1">result</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+
+    <span class="pl-k">return</span> <span class="pl-s1">resulList</span><span class="pl-kos">;</span>
+  <span class="pl-kos">}</span> <span class="pl-k">catch</span> <span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+    <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">throw</span> <span class="pl-s1">error</span><span class="pl-kos">;</span>
+  <span class="pl-kos">}</span>
+<span class="pl-kos">}</span>
+
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">tiangou</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+  <span class="pl-k">let</span> <span class="pl-s1">tg</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span>
+    <span class="pl-c1">method</span>: <span class="pl-s">"GET"</span><span class="pl-kos">,</span>
+    <span class="pl-c1">url</span>: <span class="pl-s">"https://api.oick.cn/dog/api.php"</span><span class="pl-kos">,</span>
+    <span class="pl-c1">header</span>: <span class="pl-kos">{</span>
+      <span class="pl-c1">site</span>: <span class="pl-s">"https://api.oick.cn"</span>
+    <span class="pl-kos">}</span>
+  <span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+  <span class="pl-k">return</span> <span class="pl-s1">tg</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span>
+
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">yiyan</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+  <span class="pl-k">let</span> <span class="pl-s1">yy</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span>
+    <span class="pl-c1">method</span>: <span class="pl-s">"GET"</span><span class="pl-kos">,</span>
+    <span class="pl-c1">url</span>: <span class="pl-s">"https://v1.hitokoto.cn/?c=f&amp;encode=text"</span><span class="pl-kos">,</span>
+    <span class="pl-c1">header</span>: <span class="pl-kos">{</span>
+      <span class="pl-c1">site</span>: <span class="pl-s">"www.shadiao.app"</span>
+    <span class="pl-kos">}</span>
+  <span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+  <span class="pl-k">return</span> <span class="pl-s1">yy</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span>
+
+<span class="pl-c">//社会人</span>
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">yulu</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">{</span>
+  <span class="pl-k">let</span> <span class="pl-s1">tw</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span><span class="pl-c1">url</span>: <span class="pl-s">"https://api.oick.cn/yulu/api.php"</span><span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+  <span class="pl-k">return</span> <span class="pl-s1">tw</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span><span class="pl-kos">;</span>
+
+<span class="pl-c">//疯狂星期四</span>
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">fkxqs</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+  <span class="pl-k">let</span> <span class="pl-s1">aa</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span>
+    <span class="pl-c1">method</span>: <span class="pl-s">"GET"</span><span class="pl-kos">,</span>
+    <span class="pl-c1">url</span>: <span class="pl-s">"https://api.shadiao.pro/kfc"</span><span class="pl-kos">,</span><span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+  
+  <span class="pl-k">return</span> <span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">parse</span><span class="pl-kos">(</span><span class="pl-s1">aa</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">.</span><span class="pl-c1">text</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span><span class="pl-kos">;</span>
+
+<span class="pl-c">//毒鸡汤</span>
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">dujitang</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+  <span class="pl-k">let</span> <span class="pl-s1">aa</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span>
+    <span class="pl-c1">method</span>: <span class="pl-s">"GET"</span><span class="pl-kos">,</span>
+    <span class="pl-c1">url</span>: <span class="pl-s">"https://api.shadiao.pro/du"</span><span class="pl-kos">,</span><span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+  <span class="pl-k">return</span> <span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">parse</span><span class="pl-kos">(</span><span class="pl-s1">aa</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">.</span><span class="pl-c1">text</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span><span class="pl-kos">;</span>
+
+<span class="pl-c">//骂人</span>
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">tapped</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+  <span class="pl-k">let</span> <span class="pl-s1">aa</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span>
+    <span class="pl-c1">method</span>: <span class="pl-s">"GET"</span><span class="pl-kos">,</span>
+    <span class="pl-c1">url</span>: <span class="pl-s">"https://yyapi.a1aa.cn/api.php?level=max"</span><span class="pl-kos">,</span><span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">return</span> <span class="pl-s1">aa</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span><span class="pl-kos">;</span></pre></div>
+<h2>字符串转utf8数组.js</h2>
+<div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// name: 字符串转utf8数组.js</span>
+<span class="pl-c">// 工具类函数</span>
+
+<span class="pl-k">function</span> <span class="pl-en">stringToUTF8Bytes</span><span class="pl-kos">(</span><span class="pl-s1">str</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+    <span class="pl-k">const</span> <span class="pl-s1">utf8</span> <span class="pl-c1">=</span> <span class="pl-kos">[</span><span class="pl-kos">]</span><span class="pl-kos">;</span>
+    <span class="pl-k">for</span> <span class="pl-kos">(</span><span class="pl-k">let</span> <span class="pl-s1">i</span> <span class="pl-c1">=</span> <span class="pl-c1">0</span><span class="pl-kos">;</span> <span class="pl-s1">i</span> <span class="pl-c1">&lt;</span> <span class="pl-s1">str</span><span class="pl-kos">.</span><span class="pl-c1">length</span><span class="pl-kos">;</span> <span class="pl-s1">i</span><span class="pl-c1">++</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+        <span class="pl-k">let</span> <span class="pl-s1">charCode</span> <span class="pl-c1">=</span> <span class="pl-s1">str</span><span class="pl-kos">.</span><span class="pl-en">charCodeAt</span><span class="pl-kos">(</span><span class="pl-s1">i</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">charCode</span> <span class="pl-c1">&lt;</span> <span class="pl-c1">0x80</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+            <span class="pl-s1">utf8</span><span class="pl-kos">.</span><span class="pl-en">push</span><span class="pl-kos">(</span><span class="pl-s1">charCode</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-kos">}</span> <span class="pl-k">else</span> <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">charCode</span> <span class="pl-c1">&lt;</span> <span class="pl-c1">0x800</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+            <span class="pl-s1">utf8</span><span class="pl-kos">.</span><span class="pl-en">push</span><span class="pl-kos">(</span><span class="pl-c1">0xc0</span> <span class="pl-c1">|</span> <span class="pl-kos">(</span><span class="pl-s1">charCode</span> <span class="pl-c1">&gt;&gt;</span> <span class="pl-c1">6</span><span class="pl-kos">)</span><span class="pl-kos">,</span> <span class="pl-c1">0x80</span> <span class="pl-c1">|</span> <span class="pl-kos">(</span><span class="pl-s1">charCode</span> <span class="pl-c1">&amp;</span> <span class="pl-c1">0x3f</span><span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-kos">}</span> <span class="pl-k">else</span> <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">charCode</span> <span class="pl-c1">&lt;</span> <span class="pl-c1">0x10000</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+            <span class="pl-s1">utf8</span><span class="pl-kos">.</span><span class="pl-en">push</span><span class="pl-kos">(</span><span class="pl-c1">0xe0</span> <span class="pl-c1">|</span> <span class="pl-kos">(</span><span class="pl-s1">charCode</span> <span class="pl-c1">&gt;&gt;</span> <span class="pl-c1">12</span><span class="pl-kos">)</span><span class="pl-kos">,</span> <span class="pl-c1">0x80</span> <span class="pl-c1">|</span> <span class="pl-kos">(</span><span class="pl-kos">(</span><span class="pl-s1">charCode</span> <span class="pl-c1">&gt;&gt;</span> <span class="pl-c1">6</span><span class="pl-kos">)</span> <span class="pl-c1">&amp;</span> <span class="pl-c1">0x3f</span><span class="pl-kos">)</span><span class="pl-kos">,</span> <span class="pl-c1">0x80</span> <span class="pl-c1">|</span> <span class="pl-kos">(</span><span class="pl-s1">charCode</span> <span class="pl-c1">&amp;</span> <span class="pl-c1">0x3f</span><span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-kos">}</span> <span class="pl-k">else</span> <span class="pl-kos">{</span>
+            <span class="pl-s1">utf8</span><span class="pl-kos">.</span><span class="pl-en">push</span><span class="pl-kos">(</span>
+                <span class="pl-c1">0xf0</span> <span class="pl-c1">|</span> <span class="pl-kos">(</span><span class="pl-s1">charCode</span> <span class="pl-c1">&gt;&gt;</span> <span class="pl-c1">18</span><span class="pl-kos">)</span><span class="pl-kos">,</span>
+                <span class="pl-c1">0x80</span> <span class="pl-c1">|</span> <span class="pl-kos">(</span><span class="pl-kos">(</span><span class="pl-s1">charCode</span> <span class="pl-c1">&gt;&gt;</span> <span class="pl-c1">12</span><span class="pl-kos">)</span> <span class="pl-c1">&amp;</span> <span class="pl-c1">0x3f</span><span class="pl-kos">)</span><span class="pl-kos">,</span>
+                <span class="pl-c1">0x80</span> <span class="pl-c1">|</span> <span class="pl-kos">(</span><span class="pl-kos">(</span><span class="pl-s1">charCode</span> <span class="pl-c1">&gt;&gt;</span> <span class="pl-c1">6</span><span class="pl-kos">)</span> <span class="pl-c1">&amp;</span> <span class="pl-c1">0x3f</span><span class="pl-kos">)</span><span class="pl-kos">,</span>
+                <span class="pl-c1">0x80</span> <span class="pl-c1">|</span> <span class="pl-kos">(</span><span class="pl-s1">charCode</span> <span class="pl-c1">&amp;</span> <span class="pl-c1">0x3f</span><span class="pl-kos">)</span>
+            <span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-kos">}</span>
+    <span class="pl-kos">}</span>
+    <span class="pl-k">return</span> <span class="pl-s1">utf8</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span>
+
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">output</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">{</span>
+	<span class="pl-k">const</span> <span class="pl-s1">utf8Array</span> <span class="pl-c1">=</span> <span class="pl-en">stringToUTF8Bytes</span><span class="pl-kos">(</span><span class="pl-s">"你好"</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+<span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s1">utf8Array</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span></pre></div>
+<h2>新闻.js</h2>
+<div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// name: 新闻.js</span>
+<span class="pl-c">// date: 2024-11-04</span>
+<span class="pl-c">// author: 叙白</span>
+
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">output</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+	<span class="pl-k">let</span> <span class="pl-s1">url</span> <span class="pl-c1">=</span> <span class="pl-s">"http://api.suxun.site/api/sixs?type=json"</span><span class="pl-kos">;</span>
+	<span class="pl-k">return</span> <span class="pl-k">await</span> <span class="pl-en">getData</span><span class="pl-kos">(</span><span class="pl-s1">url</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+	
+<span class="pl-kos">}</span>
+
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">getData</span><span class="pl-kos">(</span><span class="pl-s1">url</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+	<span class="pl-k">const</span> <span class="pl-kos">{</span> data <span class="pl-kos">}</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span><span class="pl-c1">url</span>: <span class="pl-s1">url</span><span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+	<span class="pl-k">const</span> <span class="pl-s1">jsonData</span> <span class="pl-c1">=</span> <span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">parse</span><span class="pl-kos">(</span><span class="pl-s1">data</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+	<span class="pl-k">let</span> <span class="pl-s1">news</span> <span class="pl-c1">=</span> <span class="pl-s1">jsonData</span><span class="pl-kos">.</span><span class="pl-c1">news</span><span class="pl-kos">;</span>
+	<span class="pl-k">return</span> <span class="pl-s1">news</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span></pre></div>
+<h2>有道翻译.js</h2>
+<div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// by leepyer</span>
+<span class="pl-c">// 叙白修改适配仓输入法</span>
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">output</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+  <span class="pl-k">try</span> <span class="pl-kos">{</span>
+    <span class="pl-k">var</span> <span class="pl-s1">text</span> <span class="pl-c1">=</span> <span class="pl-s1">$searchText</span> <span class="pl-c1">||</span> <span class="pl-s1">$pasteboardContent</span><span class="pl-kos">;</span>
+    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-c1">!</span><span class="pl-s1">text</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+      <span class="pl-k">return</span> <span class="pl-s">"请输入要翻译的文本"</span><span class="pl-kos">;</span>
+    <span class="pl-kos">}</span>
+    <span class="pl-k">const</span> <span class="pl-s1">url</span> <span class="pl-c1">=</span> <span class="pl-s">"https://m.youdao.com/translate"</span><span class="pl-kos">;</span>
+    <span class="pl-k">const</span> <span class="pl-s1">params</span> <span class="pl-c1">=</span> <span class="pl-kos">{</span>
+      <span class="pl-s">"inputtext"</span>: <span class="pl-s1">text</span><span class="pl-kos">,</span>
+      <span class="pl-s">"type"</span>: <span class="pl-s">"auto"</span>
+    <span class="pl-kos">}</span><span class="pl-kos">;</span>
+    <span class="pl-k">const</span> <span class="pl-s1">headers</span> <span class="pl-c1">=</span> <span class="pl-kos">{</span>
+      <span class="pl-s">"Content-Type"</span>: <span class="pl-s">"application/x-www-form-urlencoded"</span><span class="pl-kos">,</span>
+      <span class="pl-s">"Referer"</span>: <span class="pl-s">"https://m.youdao.com/translate"</span>
+    <span class="pl-kos">}</span><span class="pl-kos">;</span>
     <span class="pl-k">const</span> <span class="pl-s1">resp</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span>
       url<span class="pl-kos">,</span>
-      <span class="pl-c1">header</span>: <span class="pl-kos">{</span><span class="pl-s">"Content-Type"</span>: <span class="pl-s">"application/json"</span><span class="pl-kos">}</span>
-      <span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-
-    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">resp</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">.</span><span class="pl-c1">statusCode</span> <span class="pl-c1">!==</span> <span class="pl-c1">200</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-      <span class="pl-k">return</span> <span class="pl-s">"翻译失败"</span><span class="pl-kos">;</span>
-    <span class="pl-kos">}</span>
-
-    <span class="pl-k">const</span> <span class="pl-s1">jsonDict</span> <span class="pl-c1">=</span> <span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">parse</span><span class="pl-kos">(</span><span class="pl-s1">resp</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-    <span class="pl-k">const</span> <span class="pl-s1">detectedLang</span> <span class="pl-c1">=</span> <span class="pl-s1">jsonDict</span><span class="pl-kos">[</span><span class="pl-c1">2</span><span class="pl-kos">]</span><span class="pl-kos">;</span> <span class="pl-c">// 这个字段包含检测到的源语言</span>
-
-    <span class="pl-c">// 根据检测到的源语言决定目标语言</span>
-    <span class="pl-k">let</span> <span class="pl-s1">targetLang</span> <span class="pl-c1">=</span> <span class="pl-s1">detectedLang</span> <span class="pl-c1">===</span> <span class="pl-s">"zh-CN"</span> ? <span class="pl-s">"EN"</span> : <span class="pl-s">"ZH"</span><span class="pl-kos">;</span>
-    <span class="pl-k">return</span> <span class="pl-s1">targetLang</span><span class="pl-kos">;</span>
-  <span class="pl-kos">}</span> <span class="pl-k">catch</span> <span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-    <span class="pl-k">throw</span> <span class="pl-k">new</span> <span class="pl-v">Error</span><span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-  <span class="pl-kos">}</span>
-<span class="pl-kos">}</span>
-
-<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">translate</span><span class="pl-kos">(</span><span class="pl-s1">text</span><span class="pl-kos">,</span> <span class="pl-s1">target</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-  <span class="pl-k">const</span> <span class="pl-s1">payload</span> <span class="pl-c1">=</span> <span class="pl-kos">{</span>
-    <span class="pl-c1">text</span>: <span class="pl-s1">text</span><span class="pl-kos">,</span>
-    <span class="pl-c1">source_lang</span>: <span class="pl-s">"auto"</span><span class="pl-kos">,</span>
-    <span class="pl-c1">target_lang</span>: <span class="pl-s1">target</span>
-  <span class="pl-kos">}</span><span class="pl-kos">;</span>
-
-  <span class="pl-k">try</span> <span class="pl-kos">{</span>
-    <span class="pl-k">const</span> <span class="pl-s1">response</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span>
-      <span class="pl-c1">url</span>: <span class="pl-s">`https://api.deeplx.org/<span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">$deeplx_key</span><span class="pl-kos">}</span></span>/translate`</span><span class="pl-kos">,</span>
-      <span class="pl-c1">method</span>: <span class="pl-s">'POST'</span><span class="pl-kos">,</span>
-      <span class="pl-c1">header</span>: <span class="pl-kos">{</span> <span class="pl-s">'Content-Type'</span>: <span class="pl-s">'application/json'</span> <span class="pl-kos">}</span><span class="pl-kos">,</span>
-      <span class="pl-c1">body</span>: <span class="pl-s1">payload</span><span class="pl-kos">,</span>
+      <span class="pl-c1">method</span>: <span class="pl-s">"POST"</span><span class="pl-kos">,</span>
+      <span class="pl-c1">body</span>: <span class="pl-s1">params</span><span class="pl-kos">,</span>
+      <span class="pl-c1">header</span>: <span class="pl-s1">headers</span>
     <span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-
-    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">.</span><span class="pl-c1">statusCode</span> <span class="pl-c1">!==</span> <span class="pl-c1">200</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-      <span class="pl-k">return</span> <span class="pl-s">"请求失败"</span><span class="pl-kos">;</span>
-    <span class="pl-kos">}</span>
-    <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-    <span class="pl-k">return</span> <span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">parse</span><span class="pl-kos">(</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">;</span>
+    <span class="pl-k">const</span> <span class="pl-s1">regex</span> <span class="pl-c1">=</span> <span class="pl-pds"><span class="pl-c1">/</span><span class="pl-s">&lt;</span><span class="pl-s">u</span><span class="pl-s">l</span><span class="pl-s"> </span><span class="pl-s">i</span><span class="pl-s">d</span><span class="pl-s">=</span><span class="pl-s">"</span><span class="pl-s">t</span><span class="pl-s">r</span><span class="pl-s">a</span><span class="pl-s">n</span><span class="pl-s">s</span><span class="pl-s">l</span><span class="pl-s">a</span><span class="pl-s">t</span><span class="pl-s">e</span><span class="pl-s">R</span><span class="pl-s">e</span><span class="pl-s">s</span><span class="pl-s">u</span><span class="pl-s">l</span><span class="pl-s">t</span><span class="pl-s">"</span><span class="pl-s">&gt;</span><span class="pl-kos">[</span><span class="pl-cce">\s</span><span class="pl-cce">\S</span><span class="pl-kos">]</span><span class="pl-c1">*</span>?<span class="pl-s">&lt;</span><span class="pl-cce">\/</span><span class="pl-s">u</span><span class="pl-s">l</span><span class="pl-s">&gt;</span><span class="pl-c1">/</span></span><span class="pl-kos">;</span>
+    <span class="pl-k">let</span> <span class="pl-s1">match</span> <span class="pl-c1">=</span> <span class="pl-s1">resp</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">.</span><span class="pl-en">match</span><span class="pl-kos">(</span><span class="pl-s1">regex</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">let</span> <span class="pl-s1">result</span> <span class="pl-c1">=</span> <span class="pl-s1">match</span> ? <span class="pl-s1">match</span><span class="pl-kos">[</span><span class="pl-c1">0</span><span class="pl-kos">]</span> : <span class="pl-c1">null</span><span class="pl-kos">;</span>
+    <span class="pl-k">const</span> <span class="pl-s1">reg</span> <span class="pl-c1">=</span> <span class="pl-pds"><span class="pl-c1">/</span><span class="pl-kos">(?&lt;</span><span class="pl-c1">=</span><span class="pl-s">&lt;</span><span class="pl-s">l</span><span class="pl-s">i</span><span class="pl-s">&gt;</span><span class="pl-kos">)</span>.<span class="pl-c1">*</span><span class="pl-kos">(?</span><span class="pl-c1">=</span><span class="pl-s">&lt;</span><span class="pl-cce">\/</span><span class="pl-s">l</span><span class="pl-s">i</span><span class="pl-s">&gt;</span><span class="pl-kos">)</span><span class="pl-c1">/</span></span><span class="pl-kos">;</span>
+    <span class="pl-c">// const reg = /&lt;li&gt;(.*?)&lt;\/li&gt;/;</span>
+    <span class="pl-k">const</span> <span class="pl-s1">m</span> <span class="pl-c1">=</span> <span class="pl-s1">result</span><span class="pl-kos">.</span><span class="pl-en">match</span><span class="pl-kos">(</span><span class="pl-s1">reg</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">const</span> <span class="pl-s1">res</span> <span class="pl-c1">=</span> <span class="pl-s1">m</span> ? <span class="pl-s1">m</span><span class="pl-kos">[</span><span class="pl-c1">0</span><span class="pl-kos">]</span> : <span class="pl-c1">null</span><span class="pl-kos">;</span>
+    <span class="pl-c">// const res = m ? m[1] : null;</span>
+    <span class="pl-k">return</span> <span class="pl-s1">res</span><span class="pl-kos">;</span>
   <span class="pl-kos">}</span> <span class="pl-k">catch</span> <span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
     <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
     <span class="pl-k">return</span> <span class="pl-c1">null</span><span class="pl-kos">;</span>
   <span class="pl-kos">}</span>
 <span class="pl-kos">}</span></pre></div>
-<h2>每日油价</h2>
+<h2>每日油价.js</h2>
 <div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// name: 每日油价.js</span>
 <span class="pl-c">// data: 2024-10-18</span>
 <span class="pl-c">// author: 叙白</span>
@@ -1184,8 +826,10 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
   <span class="pl-s">`0号柴油: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">region</span><span class="pl-kos">.</span><span class="pl-c1">n0</span><span class="pl-kos">}</span></span>元`</span>
 <span class="pl-kos">]</span><span class="pl-kos">;</span>
   <span class="pl-k">return</span> <span class="pl-s1">prices</span><span class="pl-kos">;</span>
+
+	
 <span class="pl-kos">}</span></pre></div>
-<h2>汇率</h2>
+<h2>汇率.js</h2>
 <div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// author: 叙白</span>
 <span class="pl-c">// name: 汇率.js</span>
 <span class="pl-c">// data: 2024-09-26</span>
@@ -1281,7 +925,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
   <span class="pl-kos">}</span>
   <span class="pl-k">return</span> <span class="pl-s1">result</span><span class="pl-kos">;</span>
 <span class="pl-kos">}</span></pre></div>
-<h2>热搜</h2>
+<h2>热搜.js</h2>
 <div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// name: 热搜.js</span>
 <span class="pl-c">// date: 2024-10-17</span>
 <span class="pl-c">// author: 叙白</span>
@@ -1302,53 +946,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 	<span class="pl-k">const</span> <span class="pl-s1">titles</span> <span class="pl-c1">=</span> <span class="pl-s1">dataList</span><span class="pl-kos">.</span><span class="pl-en">map</span><span class="pl-kos">(</span><span class="pl-s1">item</span> <span class="pl-c1">=&gt;</span> <span class="pl-s1">item</span><span class="pl-kos">.</span><span class="pl-c1">title</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
 	<span class="pl-k">return</span> <span class="pl-s1">titles</span><span class="pl-kos">;</span>
 <span class="pl-kos">}</span></pre></div>
-<h2>谷歌翻译</h2>
-<div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// author: 叙白</span>
-<span class="pl-c">// name: 谷歌翻译.js</span>
-<span class="pl-c">// date: 2024-09-25</span>
-<span class="pl-c">// 使用： 要翻译成英文或中文，在翻译文本前加“中/英”， 例： 中我要回家，将会翻译成英文 </span>
-
-<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">googleTranslate</span><span class="pl-kos">(</span><span class="pl-s1">target</span><span class="pl-kos">,</span> <span class="pl-s1">text</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-  <span class="pl-k">try</span> <span class="pl-kos">{</span>
-    <span class="pl-k">const</span> <span class="pl-s1">url</span> <span class="pl-c1">=</span> <span class="pl-s">`https://translate.googleapis.com/translate_a/single?client=gtx&amp;sl=auto&amp;tl=<span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">target</span><span class="pl-kos">}</span></span>&amp;dt=t&amp;q=<span class="pl-s1"><span class="pl-kos">${</span><span class="pl-en">encodeURIComponent</span><span class="pl-kos">(</span><span class="pl-s1">text</span><span class="pl-kos">)</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
-    <span class="pl-k">const</span> <span class="pl-s1">resp</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span>
-      url<span class="pl-kos">,</span>
-      <span class="pl-c1">header</span>: <span class="pl-kos">{</span>
-        <span class="pl-s">"Content-Type"</span>: <span class="pl-s">"application/json"</span><span class="pl-kos">,</span>
-      <span class="pl-kos">}</span>
-    <span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-
-    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">resp</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">.</span><span class="pl-c1">statusCode</span><span class="pl-c1">!==</span> <span class="pl-c1">200</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-      <span class="pl-k">return</span> <span class="pl-s">"翻译失败"</span><span class="pl-kos">;</span>
-    <span class="pl-kos">}</span>
-    <span class="pl-k">const</span> <span class="pl-s1">jsonDict</span> <span class="pl-c1">=</span> <span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">parse</span><span class="pl-kos">(</span><span class="pl-s1">resp</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-    <span class="pl-k">const</span> <span class="pl-s1">translatedText</span> <span class="pl-c1">=</span> <span class="pl-s1">jsonDict</span><span class="pl-kos">[</span><span class="pl-c1">0</span><span class="pl-kos">]</span><span class="pl-kos">.</span><span class="pl-en">map</span><span class="pl-kos">(</span><span class="pl-s1">item</span> <span class="pl-c1">=&gt;</span> <span class="pl-s1">item</span><span class="pl-kos">[</span><span class="pl-c1">0</span><span class="pl-kos">]</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">join</span><span class="pl-kos">(</span><span class="pl-s">''</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-    <span class="pl-k">return</span> <span class="pl-s1">translatedText</span><span class="pl-kos">;</span>
-
-  <span class="pl-kos">}</span> <span class="pl-k">catch</span> <span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-    <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-  <span class="pl-kos">}</span>
-<span class="pl-kos">}</span>
-
-<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">output</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-  <span class="pl-k">var</span> <span class="pl-s1">text</span> <span class="pl-c1">=</span> <span class="pl-s1">$searchText</span> <span class="pl-c1">||</span> <span class="pl-s1">$pasteboardContent</span> <span class="pl-c1">||</span> <span class="pl-s">"d l"</span><span class="pl-kos">;</span>
-  <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-c1">!</span><span class="pl-s1">text</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-    <span class="pl-k">return</span> <span class="pl-s">"请输入要翻译的文本"</span><span class="pl-kos">;</span>
-  <span class="pl-kos">}</span>
-  <span class="pl-k">let</span> <span class="pl-s1">target</span> <span class="pl-c1">=</span> <span class="pl-s">""</span><span class="pl-kos">;</span>
-  <span class="pl-k">const</span> <span class="pl-s1">languageMap</span> <span class="pl-c1">=</span> <span class="pl-kos">{</span>
-    <span class="pl-s">"中"</span>: <span class="pl-s">"zh-CN"</span><span class="pl-kos">,</span>
-    <span class="pl-s">"英"</span>: <span class="pl-s">"en"</span><span class="pl-kos">,</span>
-    <span class="pl-s">"韩"</span>: <span class="pl-s">"ko"</span><span class="pl-kos">,</span>
-    <span class="pl-s">"日"</span>: <span class="pl-s">"ja"</span>
-    <span class="pl-c">// 添加更多语言映射</span>
-  <span class="pl-kos">}</span><span class="pl-kos">;</span>
-  <span class="pl-s1">target</span> <span class="pl-c1">=</span> <span class="pl-s1">languageMap</span><span class="pl-kos">[</span><span class="pl-s1">text</span><span class="pl-kos">[</span><span class="pl-c1">0</span><span class="pl-kos">]</span><span class="pl-kos">]</span> <span class="pl-c1">||</span> <span class="pl-s">"zh"</span><span class="pl-kos">;</span>
-  <span class="pl-s1">text</span> <span class="pl-c1">=</span> <span class="pl-s1">text</span><span class="pl-kos">.</span><span class="pl-en">slice</span><span class="pl-kos">(</span><span class="pl-c1">1</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-  <span class="pl-k">const</span> <span class="pl-s1">translatedText</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">googleTranslate</span><span class="pl-kos">(</span><span class="pl-s1">target</span><span class="pl-kos">,</span> <span class="pl-s1">text</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-  <span class="pl-k">return</span> <span class="pl-s1">translatedText</span><span class="pl-kos">;</span>
-<span class="pl-kos">}</span></pre></div>
-<h3>谷歌中英自动翻译</h3>
+<h2>谷歌中英互译.js</h2>
 <div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// author: 叙白</span>
 <span class="pl-c">// name: 谷歌中英互译.js</span>
 <span class="pl-c">// date: 2024-09-27</span>
@@ -1403,102 +1001,136 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
   <span class="pl-k">const</span> <span class="pl-s1">translatedText</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">googleTranslate</span><span class="pl-kos">(</span><span class="pl-s1">text</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
   <span class="pl-k">return</span> <span class="pl-s1">translatedText</span><span class="pl-kos">;</span>
 <span class="pl-kos">}</span></pre></div>
-<h2>每日新闻</h2>
-<div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// name: 新闻.js</span>
-<span class="pl-c">// date: 2024-11-04</span>
-<span class="pl-c">// author: 叙白</span>
-
-<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">output</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-	<span class="pl-k">let</span> <span class="pl-s1">url</span> <span class="pl-c1">=</span> <span class="pl-s">"http://api.suxun.site/api/sixs?type=json"</span><span class="pl-kos">;</span>
-	<span class="pl-k">return</span> <span class="pl-k">await</span> <span class="pl-en">getData</span><span class="pl-kos">(</span><span class="pl-s1">url</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-	
-<span class="pl-kos">}</span>
-
-<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">getData</span><span class="pl-kos">(</span><span class="pl-s1">url</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-	<span class="pl-k">const</span> <span class="pl-kos">{</span> data <span class="pl-kos">}</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span><span class="pl-c1">url</span>: <span class="pl-s1">url</span><span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-	<span class="pl-k">const</span> <span class="pl-s1">jsonData</span> <span class="pl-c1">=</span> <span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">parse</span><span class="pl-kos">(</span><span class="pl-s1">data</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-	<span class="pl-k">let</span> <span class="pl-s1">news</span> <span class="pl-c1">=</span> <span class="pl-s1">jsonData</span><span class="pl-kos">.</span><span class="pl-c1">news</span><span class="pl-kos">;</span>
-	<span class="pl-k">return</span> <span class="pl-s1">news</span><span class="pl-kos">;</span>
-<span class="pl-kos">}</span></pre></div>
-<h2>智谱ai翻译</h2>
+<h2>谷歌翻译.js</h2>
 <div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// author: 叙白</span>
-<span class="pl-c">// date: 2025-01-18</span>
-<span class="pl-c">// name: BigModelTranslator.js</span>
-<span class="pl-c">// 注意：请在脚本中的变量功能中添加 bigmodel_key 变量，值为 BigModel 的 API Key</span>
+<span class="pl-c">// name: 谷歌翻译.js</span>
+<span class="pl-c">// date: 2024-09-25</span>
+<span class="pl-c">// 使用： 要翻译成英文或中文，在翻译文本前加“中/英”， 例： 中我要回家，将会翻译成英文 </span>
 
-<span class="pl-k">const</span> <span class="pl-c1">BASE_URL</span> <span class="pl-c1">=</span> <span class="pl-s">"https://open.bigmodel.cn/api/paas/v4/chat/completions"</span><span class="pl-kos">;</span>
-<span class="pl-k">const</span> <span class="pl-c1">DEFAULT_MODEL</span> <span class="pl-c1">=</span> <span class="pl-s">"glm-4-flash"</span><span class="pl-kos">;</span>
-<span class="pl-k">const</span> <span class="pl-c1">DEFAULT_TEMPERATURE</span> <span class="pl-c1">=</span> <span class="pl-c1">0.1</span><span class="pl-kos">;</span>
-
-<span class="pl-c">/**</span>
-<span class="pl-c"> * 主函数，用于处理输入并输出翻译结果</span>
-<span class="pl-c"> */</span>
-<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">output</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-  <span class="pl-k">var</span> <span class="pl-s1">text</span> <span class="pl-c1">=</span> <span class="pl-s1">$searchText</span> <span class="pl-c1">||</span> <span class="pl-s1">$pasteboardContent</span><span class="pl-kos">;</span>
-  <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-c1">!</span><span class="pl-s1">text</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-    <span class="pl-k">return</span> <span class="pl-s">""</span><span class="pl-kos">;</span>
-  <span class="pl-kos">}</span>
-  <span class="pl-k">return</span> <span class="pl-k">await</span> <span class="pl-en">bigModelTranslate</span><span class="pl-kos">(</span><span class="pl-s1">text</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-<span class="pl-kos">}</span>
-
-<span class="pl-c">/**</span>
-<span class="pl-c"> * 调用 BigModel 翻译 API</span>
-<span class="pl-c"> * <span class="pl-k">@param</span> {<span class="pl-smi">string</span>} text - 需要翻译的文本</span>
-<span class="pl-c"> * <span class="pl-k">@returns</span> {<span class="pl-smi">Promise&lt;string&gt;</span>} - 翻译后的文本</span>
-<span class="pl-c"> */</span>
-<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">bigModelTranslate</span><span class="pl-kos">(</span><span class="pl-s1">text</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-  <span class="pl-k">const</span> <span class="pl-s1">messages</span> <span class="pl-c1">=</span> <span class="pl-kos">[</span>
-    <span class="pl-kos">{</span>
-      <span class="pl-c1">role</span>: <span class="pl-s">"system"</span><span class="pl-kos">,</span>
-      <span class="pl-c1">content</span>: <span class="pl-s">"You are a professional, authentic machine translation engine."</span><span class="pl-kos">,</span>
-    <span class="pl-kos">}</span><span class="pl-kos">,</span>
-    <span class="pl-kos">{</span>
-      <span class="pl-c1">role</span>: <span class="pl-s">"user"</span><span class="pl-kos">,</span>
-      <span class="pl-c1">content</span>: <span class="pl-s">`; 把下一行文本作为纯文本输入，对该文本进行中文和外语的互译,仅输出翻译。如果某些内容无需翻译（如专有名词、代码等），则保持原文不变。 不要解释，输入文本:\n<span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">text</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">,</span>
-    <span class="pl-kos">}</span><span class="pl-kos">,</span>
-  <span class="pl-kos">]</span><span class="pl-kos">;</span>
-
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">googleTranslate</span><span class="pl-kos">(</span><span class="pl-s1">target</span><span class="pl-kos">,</span> <span class="pl-s1">text</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
   <span class="pl-k">try</span> <span class="pl-kos">{</span>
-    <span class="pl-k">const</span> <span class="pl-s1">response</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span>
-      <span class="pl-c1">url</span>: <span class="pl-c1">BASE_URL</span><span class="pl-kos">,</span>
-      <span class="pl-c1">method</span>: <span class="pl-s">"POST"</span><span class="pl-kos">,</span>
+    <span class="pl-k">const</span> <span class="pl-s1">url</span> <span class="pl-c1">=</span> <span class="pl-s">`https://translate.googleapis.com/translate_a/single?client=gtx&amp;sl=auto&amp;tl=<span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">target</span><span class="pl-kos">}</span></span>&amp;dt=t&amp;q=<span class="pl-s1"><span class="pl-kos">${</span><span class="pl-en">encodeURIComponent</span><span class="pl-kos">(</span><span class="pl-s1">text</span><span class="pl-kos">)</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
+    <span class="pl-k">const</span> <span class="pl-s1">resp</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span>
+      url<span class="pl-kos">,</span>
       <span class="pl-c1">header</span>: <span class="pl-kos">{</span>
         <span class="pl-s">"Content-Type"</span>: <span class="pl-s">"application/json"</span><span class="pl-kos">,</span>
-        <span class="pl-c1">Authorization</span>: <span class="pl-s">`Bearer <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">$bigmodel_key</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">,</span>
-      <span class="pl-kos">}</span><span class="pl-kos">,</span>
-      <span class="pl-c1">body</span>: <span class="pl-kos">{</span>
-        messages<span class="pl-kos">,</span>
-        <span class="pl-c1">model</span>: <span class="pl-c1">DEFAULT_MODEL</span><span class="pl-kos">,</span>
-        <span class="pl-c1">temperature</span>: <span class="pl-c1">DEFAULT_TEMPERATURE</span><span class="pl-kos">,</span>
-        <span class="pl-c1">top_p</span>: <span class="pl-c1">0.1</span><span class="pl-kos">,</span>
-        <span class="pl-c1">max_tokens</span>: <span class="pl-c1">2048</span><span class="pl-kos">,</span>
-      <span class="pl-kos">}</span><span class="pl-kos">,</span>
-      <span class="pl-c1">timeout</span>: <span class="pl-c1">30</span><span class="pl-kos">,</span>
+      <span class="pl-kos">}</span>
     <span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
 
-    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">.</span><span class="pl-c1">statusCode</span> <span class="pl-c1">!==</span> <span class="pl-c1">200</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-      <span class="pl-k">throw</span> <span class="pl-k">new</span> <span class="pl-v">Error</span><span class="pl-kos">(</span><span class="pl-s">`API请求失败: HTTP状态码 <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">.</span><span class="pl-c1">statusCode</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">resp</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">.</span><span class="pl-c1">statusCode</span><span class="pl-c1">!==</span> <span class="pl-c1">200</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+      <span class="pl-k">return</span> <span class="pl-s">"翻译失败"</span><span class="pl-kos">;</span>
     <span class="pl-kos">}</span>
+    <span class="pl-k">const</span> <span class="pl-s1">jsonDict</span> <span class="pl-c1">=</span> <span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">parse</span><span class="pl-kos">(</span><span class="pl-s1">resp</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">const</span> <span class="pl-s1">translatedText</span> <span class="pl-c1">=</span> <span class="pl-s1">jsonDict</span><span class="pl-kos">[</span><span class="pl-c1">0</span><span class="pl-kos">]</span><span class="pl-kos">.</span><span class="pl-en">map</span><span class="pl-kos">(</span><span class="pl-s1">item</span> <span class="pl-c1">=&gt;</span> <span class="pl-s1">item</span><span class="pl-kos">[</span><span class="pl-c1">0</span><span class="pl-kos">]</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">join</span><span class="pl-kos">(</span><span class="pl-s">''</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">return</span> <span class="pl-s1">translatedText</span><span class="pl-kos">;</span>
 
-    <span class="pl-k">const</span> <span class="pl-s1">responseData</span> <span class="pl-c1">=</span> <span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">parse</span><span class="pl-kos">(</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-c1">!</span><span class="pl-s1">responseData</span><span class="pl-kos">.</span><span class="pl-c1">choices</span> <span class="pl-c1">||</span> <span class="pl-s1">responseData</span><span class="pl-kos">.</span><span class="pl-c1">choices</span><span class="pl-kos">.</span><span class="pl-c1">length</span> <span class="pl-c1">===</span> <span class="pl-c1">0</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-      <span class="pl-k">throw</span> <span class="pl-k">new</span> <span class="pl-v">Error</span><span class="pl-kos">(</span><span class="pl-s">"API返回数据格式错误: 没有找到有效的回复"</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-    <span class="pl-kos">}</span>
-
-    <span class="pl-c">// 返回翻译后的内容</span>
-    <span class="pl-k">return</span> <span class="pl-s1">responseData</span><span class="pl-kos">.</span><span class="pl-c1">choices</span><span class="pl-kos">[</span><span class="pl-c1">0</span><span class="pl-kos">]</span><span class="pl-kos">.</span><span class="pl-c1">message</span><span class="pl-kos">?.</span><span class="pl-c1">content</span> <span class="pl-c1">||</span> <span class="pl-s">""</span><span class="pl-kos">;</span>
   <span class="pl-kos">}</span> <span class="pl-k">catch</span> <span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-    <span class="pl-k">const</span> <span class="pl-s1">errorMessage</span> <span class="pl-c1">=</span>
-      <span class="pl-s1">error</span> <span class="pl-k">instanceof</span> <span class="pl-v">SyntaxError</span>
-        ? <span class="pl-s">"API返回的数据无法解析为JSON"</span>
-        : <span class="pl-s1">error</span><span class="pl-kos">.</span><span class="pl-c1">message</span> <span class="pl-c1">||</span> <span class="pl-s">"未知错误"</span><span class="pl-kos">;</span>
-    <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s">`BigModel API 错误: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">errorMessage</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-      <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s">`响应详情: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">stringify</span><span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">)</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-    <span class="pl-kos">}</span>
-    <span class="pl-k">return</span> <span class="pl-s">`抱歉，发生了错误: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">errorMessage</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
+    <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
   <span class="pl-kos">}</span>
-<span class="pl-kos">}</span></pre></div></div>
+<span class="pl-kos">}</span>
+
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">output</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+  <span class="pl-k">var</span> <span class="pl-s1">text</span> <span class="pl-c1">=</span> <span class="pl-s1">$searchText</span> <span class="pl-c1">||</span> <span class="pl-s1">$pasteboardContent</span> <span class="pl-c1">||</span> <span class="pl-s">"d l"</span><span class="pl-kos">;</span>
+  <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-c1">!</span><span class="pl-s1">text</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+    <span class="pl-k">return</span> <span class="pl-s">"请输入要翻译的文本"</span><span class="pl-kos">;</span>
+  <span class="pl-kos">}</span>
+  <span class="pl-k">let</span> <span class="pl-s1">target</span> <span class="pl-c1">=</span> <span class="pl-s">""</span><span class="pl-kos">;</span>
+  <span class="pl-k">const</span> <span class="pl-s1">languageMap</span> <span class="pl-c1">=</span> <span class="pl-kos">{</span>
+    <span class="pl-s">"中"</span>: <span class="pl-s">"zh-CN"</span><span class="pl-kos">,</span>
+    <span class="pl-s">"英"</span>: <span class="pl-s">"en"</span><span class="pl-kos">,</span>
+    <span class="pl-s">"韩"</span>: <span class="pl-s">"ko"</span><span class="pl-kos">,</span>
+    <span class="pl-s">"日"</span>: <span class="pl-s">"ja"</span>
+    <span class="pl-c">// 添加更多语言映射</span>
+  <span class="pl-kos">}</span><span class="pl-kos">;</span>
+  <span class="pl-s1">target</span> <span class="pl-c1">=</span> <span class="pl-s1">languageMap</span><span class="pl-kos">[</span><span class="pl-s1">text</span><span class="pl-kos">[</span><span class="pl-c1">0</span><span class="pl-kos">]</span><span class="pl-kos">]</span> <span class="pl-c1">||</span> <span class="pl-s">"zh"</span><span class="pl-kos">;</span>
+  <span class="pl-s1">text</span> <span class="pl-c1">=</span> <span class="pl-s1">text</span><span class="pl-kos">.</span><span class="pl-en">slice</span><span class="pl-kos">(</span><span class="pl-c1">1</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+  <span class="pl-k">const</span> <span class="pl-s1">translatedText</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">googleTranslate</span><span class="pl-kos">(</span><span class="pl-s1">target</span><span class="pl-kos">,</span> <span class="pl-s1">text</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+  <span class="pl-k">return</span> <span class="pl-s1">translatedText</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span></pre></div>
+<h2>进制转换.js</h2>
+<div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// name: 进制转换.js</span>
+<span class="pl-c">// date: 2024-09-29</span>
+<span class="pl-c">// 输入举例: 二进制格式: 0bxxx, 8进制格式: 0oxxx, 10进制格式: xxx, 16进制格式: 0xXXX</span>
+<span class="pl-c">// 结果顺序: 2 8 10 16进制</span>
+
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">output</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+	<span class="pl-k">const</span> <span class="pl-s1">inputStr</span> <span class="pl-c1">=</span> <span class="pl-s1">$searchText</span><span class="pl-kos">;</span>
+  <span class="pl-k">const</span> <span class="pl-s1">result</span> <span class="pl-c1">=</span> <span class="pl-en">convert</span><span class="pl-kos">(</span><span class="pl-s1">inputStr</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+  <span class="pl-k">return</span> <span class="pl-s1">result</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span>
+
+<span class="pl-k">function</span> <span class="pl-en">convert</span><span class="pl-kos">(</span><span class="pl-s1">inputStr</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+    <span class="pl-k">const</span> <span class="pl-s1">results</span> <span class="pl-c1">=</span> <span class="pl-kos">[</span><span class="pl-kos">]</span><span class="pl-kos">;</span>
+
+    <span class="pl-c">// 判断数字的进制</span>
+    <span class="pl-k">const</span> <span class="pl-s1">base</span> <span class="pl-c1">=</span> <span class="pl-en">detectBase</span><span class="pl-kos">(</span><span class="pl-s1">inputStr</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+
+    <span class="pl-c">// 将数字转换为2, 4, 8, 10, 16进制并存入数组</span>
+    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">base</span> <span class="pl-c1">!==</span> <span class="pl-c1">null</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+        <span class="pl-k">const</span> <span class="pl-s1">num</span> <span class="pl-c1">=</span> <span class="pl-en">parseInt</span><span class="pl-kos">(</span><span class="pl-s1">inputStr</span><span class="pl-kos">,</span> <span class="pl-s1">base</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-s1">results</span><span class="pl-kos">.</span><span class="pl-en">push</span><span class="pl-kos">(</span><span class="pl-s1">num</span><span class="pl-kos">.</span><span class="pl-en">toString</span><span class="pl-kos">(</span><span class="pl-c1">2</span><span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">;</span>  <span class="pl-c">// 转换成2进制</span>
+        <span class="pl-s1">results</span><span class="pl-kos">.</span><span class="pl-en">push</span><span class="pl-kos">(</span><span class="pl-s1">num</span><span class="pl-kos">.</span><span class="pl-en">toString</span><span class="pl-kos">(</span><span class="pl-c1">8</span><span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">;</span>  <span class="pl-c">// 转换成8进制</span>
+        <span class="pl-s1">results</span><span class="pl-kos">.</span><span class="pl-en">push</span><span class="pl-kos">(</span><span class="pl-s1">num</span><span class="pl-kos">.</span><span class="pl-en">toString</span><span class="pl-kos">(</span><span class="pl-c1">10</span><span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">;</span> <span class="pl-c">// 转换成10进制</span>
+        <span class="pl-s1">results</span><span class="pl-kos">.</span><span class="pl-en">push</span><span class="pl-kos">(</span><span class="pl-s1">num</span><span class="pl-kos">.</span><span class="pl-en">toString</span><span class="pl-kos">(</span><span class="pl-c1">16</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">toUpperCase</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">;</span> <span class="pl-c">// 转换成16进制</span>
+    <span class="pl-kos">}</span> <span class="pl-k">else</span> <span class="pl-kos">{</span>
+        <span class="pl-k">return</span> <span class="pl-s">"无法判断输入的进制或输入不合法。"</span><span class="pl-kos">;</span>
+    <span class="pl-kos">}</span>
+
+    <span class="pl-k">return</span> <span class="pl-s1">results</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span>
+
+<span class="pl-c">// 判断输入数字的进制</span>
+<span class="pl-k">function</span> <span class="pl-en">detectBase</span><span class="pl-kos">(</span><span class="pl-s1">str</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-k">typeof</span> <span class="pl-s1">str</span> <span class="pl-c1">!==</span> <span class="pl-s">'string'</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+        <span class="pl-k">throw</span> <span class="pl-k">new</span> <span class="pl-v">Error</span><span class="pl-kos">(</span><span class="pl-s">"输入必须是字符串类型。"</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-kos">}</span>
+    <span class="pl-c">// 使用数组存储正则和对应的进制</span>
+    <span class="pl-k">const</span> <span class="pl-s1">basePatterns</span> <span class="pl-c1">=</span> <span class="pl-kos">[</span>
+        <span class="pl-kos">{</span> <span class="pl-c1">pattern</span>: <span class="pl-pds"><span class="pl-c1">/</span><span class="pl-cce">^</span><span class="pl-s">0</span><span class="pl-s">b</span><span class="pl-kos">[</span><span class="pl-c1">0</span><span class="pl-c1">1</span><span class="pl-kos">]</span><span class="pl-c1">+</span><span class="pl-cce">$</span><span class="pl-c1">/</span>i</span><span class="pl-kos">,</span> <span class="pl-c1">base</span>: <span class="pl-c1">2</span> <span class="pl-kos">}</span><span class="pl-kos">,</span>
+        <span class="pl-kos">{</span> <span class="pl-c1">pattern</span>: <span class="pl-pds"><span class="pl-c1">/</span><span class="pl-cce">^</span><span class="pl-s">0</span><span class="pl-s">o</span><span class="pl-kos">[</span><span class="pl-c1">0</span><span class="pl-c1">-</span><span class="pl-c1">7</span><span class="pl-kos">]</span><span class="pl-c1">+</span><span class="pl-cce">$</span><span class="pl-c1">/</span>i</span><span class="pl-kos">,</span> <span class="pl-c1">base</span>: <span class="pl-c1">8</span> <span class="pl-kos">}</span><span class="pl-kos">,</span>
+        <span class="pl-kos">{</span> <span class="pl-c1">pattern</span>: <span class="pl-pds"><span class="pl-c1">/</span><span class="pl-cce">^</span><span class="pl-s">0</span><span class="pl-s">x</span><span class="pl-kos">[</span><span class="pl-c1">0</span><span class="pl-c1">-</span><span class="pl-c1">9</span><span class="pl-c1">a</span><span class="pl-c1">-</span><span class="pl-c1">f</span><span class="pl-kos">]</span><span class="pl-c1">+</span><span class="pl-cce">$</span><span class="pl-c1">/</span>i</span><span class="pl-kos">,</span> <span class="pl-c1">base</span>: <span class="pl-c1">16</span> <span class="pl-kos">}</span><span class="pl-kos">,</span>
+        <span class="pl-kos">{</span> <span class="pl-c1">pattern</span>: <span class="pl-pds"><span class="pl-c1">/</span><span class="pl-cce">^</span><span class="pl-kos">[</span><span class="pl-c1">0</span><span class="pl-c1">-</span><span class="pl-c1">9</span><span class="pl-kos">]</span><span class="pl-c1">+</span><span class="pl-cce">$</span><span class="pl-c1">/</span></span><span class="pl-kos">,</span> <span class="pl-c1">base</span>: <span class="pl-c1">10</span> <span class="pl-kos">}</span>
+    <span class="pl-kos">]</span><span class="pl-kos">;</span>
+
+    <span class="pl-k">for</span> <span class="pl-kos">(</span><span class="pl-k">const</span> <span class="pl-kos">{</span> pattern<span class="pl-kos">,</span> base <span class="pl-kos">}</span> <span class="pl-k">of</span> <span class="pl-s1">basePatterns</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+        <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">pattern</span><span class="pl-kos">.</span><span class="pl-en">test</span><span class="pl-kos">(</span><span class="pl-s1">str</span><span class="pl-kos">)</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+            <span class="pl-k">return</span> <span class="pl-s1">base</span><span class="pl-kos">;</span>
+        <span class="pl-kos">}</span>
+    <span class="pl-kos">}</span>
+    <span class="pl-k">return</span> <span class="pl-c1">null</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span></pre></div>
+<h2>骂人.js</h2>
+<div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// name: 骂人.js</span>
+
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">getInsultText</span><span class="pl-kos">(</span><span class="pl-s1">text</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+  <span class="pl-k">try</span> <span class="pl-kos">{</span>
+    <span class="pl-k">const</span> <span class="pl-s1">url</span> <span class="pl-c1">=</span> <span class="pl-s">"https://yyapi.a1aa.cn/api.php?level=max"</span><span class="pl-kos">;</span>
+    
+
+    <span class="pl-k">const</span> <span class="pl-s1">resp</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span>
+			url<span class="pl-kos">,</span>
+      <span class="pl-c1">method</span>: <span class="pl-s">'GET'</span><span class="pl-kos">,</span>
+      <span class="pl-c1">header</span>: <span class="pl-kos">{</span> <span class="pl-s">"Content-Type"</span>: <span class="pl-s">"application/json"</span> <span class="pl-kos">}</span>
+    <span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    
+    <span class="pl-c">// 检查响应是否成功</span>
+    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">resp</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">.</span><span class="pl-c1">statusCode</span> <span class="pl-c1">!==</span> <span class="pl-c1">200</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+      <span class="pl-k">throw</span> <span class="pl-k">new</span> <span class="pl-v">Error</span><span class="pl-kos">(</span><span class="pl-s">`HTTP error! status: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">resp</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">.</span><span class="pl-c1">statusCode</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-kos">}</span>
+
+    <span class="pl-k">return</span> <span class="pl-s1">resp</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">;</span>
+  <span class="pl-kos">}</span> <span class="pl-k">catch</span> <span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+    <span class="pl-smi">console</span><span class="pl-kos">.</span><span class="pl-en">error</span><span class="pl-kos">(</span><span class="pl-s">"Translation error:"</span><span class="pl-kos">,</span> <span class="pl-s1">error</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">return</span> <span class="pl-c1">null</span><span class="pl-kos">;</span> <span class="pl-c">// 处理错误的返回值</span>
+  <span class="pl-kos">}</span>
+<span class="pl-kos">}</span>
+
+<span class="pl-c">// 示例调用</span>
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">output</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+ 
+  <span class="pl-k">const</span> <span class="pl-s1">result</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">getInsultText</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+  <span class="pl-k">return</span> <span class="pl-s1">result</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span><span class="pl-kos">;</span></pre></div></div>
 <div style="font-size:small;margin-top:8px;float:right;">转载请注明出处</div>
 
 <button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
