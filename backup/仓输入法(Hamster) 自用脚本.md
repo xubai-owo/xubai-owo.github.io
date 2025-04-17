@@ -358,13 +358,6 @@ async function output() {
 }
 ```
 
-## Test.txt
-
-```javascript
-// name: Test.txt
-hshs
-```
-
 ## Unicode.js
 
 ```javascript
