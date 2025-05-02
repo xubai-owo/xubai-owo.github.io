@@ -592,6 +592,33 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
     <span class="pl-k">return</span> <span class="pl-s">"请输入正确的指令"</span><span class="pl-kos">;</span>
   <span class="pl-kos">}</span>
 <span class="pl-kos">}</span></pre></div>
+<h2>b站链接转换.js</h2>
+<div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// author: 叙白</span>
+<span class="pl-c">// name: b站链接转换.js</span>
+<span class="pl-c">// date: 2025-04-17</span>
+<span class="pl-c">// 使用： 复制b站app分享的链接后，运行脚本会自动提取b23的短链，转换为只含bv号的长链</span>
+<span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">output</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+	<span class="pl-k">var</span> <span class="pl-s1">text</span> <span class="pl-c1">=</span> <span class="pl-s1">$searchText</span> <span class="pl-c1">||</span> <span class="pl-s1">$pasteboardContent</span><span class="pl-kos">;</span>
+	<span class="pl-k">const</span> <span class="pl-s1">url</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">extractBiliUrls</span><span class="pl-kos">(</span><span class="pl-s1">text</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+	<span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s1">url</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+	<span class="pl-k">const</span> <span class="pl-s1">response</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span>
+		<span class="pl-c1">url</span>: <span class="pl-s">`<span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">url</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">,</span>
+		<span class="pl-c1">method</span>: <span class="pl-s">"HEAD"</span>
+	<span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+	<span class="pl-k">const</span> <span class="pl-s1">longUrl</span><span class="pl-c1">=</span> <span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">.</span><span class="pl-c1">url</span><span class="pl-kos">;</span>
+	<span class="pl-k">const</span> <span class="pl-s1">shortUrl</span> <span class="pl-c1">=</span> <span class="pl-s1">longUrl</span><span class="pl-kos">.</span><span class="pl-en">split</span><span class="pl-kos">(</span><span class="pl-s">'?'</span><span class="pl-kos">)</span><span class="pl-kos">[</span><span class="pl-c1">0</span><span class="pl-kos">]</span><span class="pl-kos">;</span>
+	<span class="pl-k">return</span> <span class="pl-s1">shortUrl</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span>
+
+<span class="pl-k">function</span> <span class="pl-en">extractBiliUrls</span><span class="pl-kos">(</span><span class="pl-s1">text</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+    <span class="pl-c">// 优先匹配B站短链接格式（b23.tv）</span>
+    <span class="pl-k">const</span> <span class="pl-s1">biliShortRegex</span> <span class="pl-c1">=</span> <span class="pl-pds"><span class="pl-c1">/</span><span class="pl-s">h</span><span class="pl-s">t</span><span class="pl-s">t</span><span class="pl-s">p</span><span class="pl-s">s</span><span class="pl-c1">?</span><span class="pl-s">:</span><span class="pl-cce">\/</span><span class="pl-cce">\/</span><span class="pl-s">b</span><span class="pl-s">2</span><span class="pl-s">3</span><span class="pl-cce">\.</span><span class="pl-s">t</span><span class="pl-s">v</span><span class="pl-cce">\/</span><span class="pl-kos">[</span><span class="pl-c1">a</span><span class="pl-c1">-</span><span class="pl-c1">z</span><span class="pl-c1">A</span><span class="pl-c1">-</span><span class="pl-c1">Z</span><span class="pl-c1">0</span><span class="pl-c1">-</span><span class="pl-c1">9</span><span class="pl-kos">]</span><span class="pl-c1">+</span><span class="pl-c1">/</span>g</span><span class="pl-kos">;</span>
+    <span class="pl-k">const</span> <span class="pl-s1">urls</span> <span class="pl-c1">=</span> <span class="pl-s1">text</span><span class="pl-kos">.</span><span class="pl-en">match</span><span class="pl-kos">(</span><span class="pl-s1">biliShortRegex</span><span class="pl-kos">)</span> <span class="pl-c1">||</span> <span class="pl-kos">[</span><span class="pl-kos">]</span><span class="pl-kos">;</span>
+    
+    <span class="pl-c">// 补充匹配标准URL</span>
+    <span class="pl-k">const</span> <span class="pl-s1">standardUrls</span> <span class="pl-c1">=</span> <span class="pl-s1">text</span><span class="pl-kos">.</span><span class="pl-en">match</span><span class="pl-kos">(</span><span class="pl-pds"><span class="pl-c1">/</span><span class="pl-s">h</span><span class="pl-s">t</span><span class="pl-s">t</span><span class="pl-s">p</span><span class="pl-s">s</span><span class="pl-c1">?</span><span class="pl-s">:</span><span class="pl-cce">\/</span><span class="pl-cce">\/</span><span class="pl-kos">[</span><span class="pl-c1">^</span><span class="pl-cce">\s</span><span class="pl-kos">]</span><span class="pl-c1">+</span><span class="pl-c1">/</span>g</span><span class="pl-kos">)</span> <span class="pl-c1">||</span> <span class="pl-kos">[</span><span class="pl-kos">]</span><span class="pl-kos">;</span>
+    <span class="pl-k">return</span> <span class="pl-kos">[</span>...<span class="pl-k">new</span> <span class="pl-v">Set</span><span class="pl-kos">(</span><span class="pl-kos">[</span>...<span class="pl-s1">urls</span><span class="pl-kos">,</span> ...<span class="pl-s1">standardUrls</span><span class="pl-kos">]</span><span class="pl-kos">)</span><span class="pl-kos">]</span><span class="pl-kos">;</span> <span class="pl-c">// 去重</span>
+<span class="pl-kos">}</span></pre></div>
 <h2>getScript.js</h2>
 <div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// author: 叙白</span>
 <span class="pl-c">// name: getScript.js</span>
