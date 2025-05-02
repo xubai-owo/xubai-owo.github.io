@@ -236,17 +236,38 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <span class="pl-kos">}</span></pre></div>
 <h2>DeepSeek.js</h2>
 <div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// author: 叙白</span>
-<span class="pl-c">// date: 2025-01-19</span>
+<span class="pl-c">// date: 2025-05-02</span>
 <span class="pl-c">// name: DeepSeek.js</span>
 <span class="pl-c">// 注意：请在脚本中的变量功能中添加 deepseek_key 变量，值为 DeepSeek 的 API Key</span>
 <span class="pl-c">// 如果您使用转发平台的 API ，则值为转发平台的 API Key, 并且修改 BASE_URL</span>
-<span class="pl-c">// 此脚本仅兼容 OpenAI 格式 (openai, deepseek, kimi 以及更多兼容 OpenAI 格式的都可使用，温度需要根据各家 AI 自行调整)</span>
+<span class="pl-c">// 此脚本兼容 OpenAI 格式 (openai, deepseek, kimi 等)</span>
 
 <span class="pl-k">const</span> <span class="pl-c1">BASE_URL</span> <span class="pl-c1">=</span> <span class="pl-s">"https://api.deepseek.com/v1/chat/completions"</span><span class="pl-kos">;</span>
 <span class="pl-k">const</span> <span class="pl-c1">DEFAULT_MODEL</span> <span class="pl-c1">=</span> <span class="pl-s">"deepseek-chat"</span><span class="pl-kos">;</span>
 <span class="pl-k">const</span> <span class="pl-c1">DEFAULT_TEMPERATURE</span> <span class="pl-c1">=</span> <span class="pl-c1">1.3</span><span class="pl-kos">;</span> <span class="pl-c">// 通用对话推荐温度</span>
 
 <span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">deepseekDemo</span><span class="pl-kos">(</span><span class="pl-s1">question</span> <span class="pl-c1">=</span> <span class="pl-s">"你好"</span><span class="pl-kos">,</span> <span class="pl-s1">options</span> <span class="pl-c1">=</span> <span class="pl-kos">{</span><span class="pl-kos">}</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+  <span class="pl-c">// 参数验证</span>
+  <span class="pl-k">try</span> <span class="pl-kos">{</span>
+    <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s1">$deepseek_key</span><span class="pl-kos">)</span>
+  <span class="pl-kos">}</span> <span class="pl-k">catch</span> <span class="pl-kos">(</span><span class="pl-v">ReferenceError</span><span class="pl-kos">)</span><span class="pl-kos">{</span>
+    <span class="pl-k">const</span> <span class="pl-s1">errorMessage</span> <span class="pl-c1">=</span> <span class="pl-s">'未检测到 deepseek_key 变量，请先在脚本变量中配置 DeepSeek API 密钥'</span><span class="pl-kos">;</span>
+    <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s1">errorMessage</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">return</span> <span class="pl-s1">errorMessage</span><span class="pl-kos">;</span>
+ 
+  <span class="pl-kos">}</span>
+  <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-c1">!</span><span class="pl-s1">$deepseek_key</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+    <span class="pl-k">const</span> <span class="pl-s1">errorMessage</span> <span class="pl-c1">=</span> <span class="pl-s">'未检测到 deepseek_key 变量，请先在脚本变量中配置 DeepSeek API 密钥'</span><span class="pl-kos">;</span>
+    <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s1">errorMessage</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">return</span> <span class="pl-s1">errorMessage</span><span class="pl-kos">;</span>
+  <span class="pl-kos">}</span>
+
+  <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-c1">!</span><span class="pl-s1">question</span> <span class="pl-c1">||</span> <span class="pl-k">typeof</span> <span class="pl-s1">question</span> <span class="pl-c1">!==</span> <span class="pl-s">'string'</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+    <span class="pl-k">const</span> <span class="pl-s1">errorMessage</span> <span class="pl-c1">=</span> <span class="pl-s">'无效的提问内容'</span><span class="pl-kos">;</span>
+    <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s1">errorMessage</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">return</span> <span class="pl-s1">errorMessage</span><span class="pl-kos">;</span>
+  <span class="pl-kos">}</span>
+
   <span class="pl-k">const</span> <span class="pl-kos">{</span>
     model <span class="pl-c1">=</span> <span class="pl-c1">DEFAULT_MODEL</span><span class="pl-kos">,</span>
     temperature <span class="pl-c1">=</span> <span class="pl-c1">DEFAULT_TEMPERATURE</span><span class="pl-kos">,</span>
@@ -260,58 +281,79 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
     <span class="pl-kos">{</span> <span class="pl-c1">role</span>: <span class="pl-s">"user"</span><span class="pl-kos">,</span> <span class="pl-c1">content</span>: <span class="pl-s1">question</span> <span class="pl-kos">}</span>
   <span class="pl-kos">]</span><span class="pl-kos">;</span>
 
-  <span class="pl-k">try</span> <span class="pl-kos">{</span>
-    <span class="pl-k">const</span> <span class="pl-s1">response</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span>
-      <span class="pl-c1">url</span>: <span class="pl-c1">BASE_URL</span><span class="pl-kos">,</span>
-      <span class="pl-c1">method</span>: <span class="pl-s">"POST"</span><span class="pl-kos">,</span>
-      <span class="pl-c1">header</span>: <span class="pl-kos">{</span>
-        <span class="pl-s">"Content-Type"</span>: <span class="pl-s">"application/json"</span><span class="pl-kos">,</span>
-        <span class="pl-c1">Authorization</span>: <span class="pl-s">`Bearer <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">$deepseek_key</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">,</span>
-      <span class="pl-kos">}</span><span class="pl-kos">,</span>
-      <span class="pl-c1">body</span>: <span class="pl-kos">{</span> messages<span class="pl-kos">,</span> model<span class="pl-kos">,</span> temperature <span class="pl-kos">}</span><span class="pl-kos">,</span>
-      <span class="pl-c1">timeout</span>: <span class="pl-c1">30</span><span class="pl-kos">,</span>
-    <span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+  <span class="pl-k">const</span> <span class="pl-s1">response</span> <span class="pl-c1">=</span> <span class="pl-k">await</span> <span class="pl-en">$http</span><span class="pl-kos">(</span><span class="pl-kos">{</span>
+    <span class="pl-c1">url</span>: <span class="pl-c1">BASE_URL</span><span class="pl-kos">,</span>
+    <span class="pl-c1">method</span>: <span class="pl-s">"POST"</span><span class="pl-kos">,</span>
+    <span class="pl-c1">header</span>: <span class="pl-kos">{</span>
+      <span class="pl-s">"Content-Type"</span>: <span class="pl-s">"application/json"</span><span class="pl-kos">,</span>
+      <span class="pl-c1">Authorization</span>: <span class="pl-s">`Bearer <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">$deepseek_key</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">,</span>
+    <span class="pl-kos">}</span><span class="pl-kos">,</span>
+    <span class="pl-c1">body</span>: <span class="pl-kos">{</span> messages<span class="pl-kos">,</span> model<span class="pl-kos">,</span> temperature <span class="pl-kos">}</span><span class="pl-kos">,</span>
+    <span class="pl-c1">timeout</span>: <span class="pl-c1">30</span><span class="pl-kos">,</span>
+  <span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
 
-    <span class="pl-c">// 检查 HTTP 状态码</span>
-    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">.</span><span class="pl-c1">statusCode</span> <span class="pl-c1">!==</span> <span class="pl-c1">200</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-      <span class="pl-k">const</span> <span class="pl-s1">errorMessage</span> <span class="pl-c1">=</span> <span class="pl-s">`API请求失败: HTTP状态码 <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">.</span><span class="pl-c1">statusCode</span><span class="pl-kos">}</span></span>, 响应数据: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
-      <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s">`DeepSeek API 错误: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">errorMessage</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-      <span class="pl-k">return</span> <span class="pl-s">`抱歉，发生了错误: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">errorMessage</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
-    <span class="pl-kos">}</span>
-
-    <span class="pl-c">// 解析响应数据</span>
-    <span class="pl-k">let</span> <span class="pl-s1">responseData</span><span class="pl-kos">;</span>
+  <span class="pl-c">// 处理HTTP异常状态码</span>
+  <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">.</span><span class="pl-c1">statusCode</span> <span class="pl-c1">&lt;</span> <span class="pl-c1">200</span> <span class="pl-c1">||</span> <span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">.</span><span class="pl-c1">statusCode</span> <span class="pl-c1">&gt;=</span> <span class="pl-c1">300</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+    <span class="pl-k">let</span> <span class="pl-s1">errorMessage</span> <span class="pl-c1">=</span> <span class="pl-s">`API请求失败 (HTTP <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">.</span><span class="pl-c1">statusCode</span><span class="pl-kos">}</span></span>)`</span><span class="pl-kos">;</span>
+    
+    <span class="pl-c">// 尝试解析错误详情</span>
     <span class="pl-k">try</span> <span class="pl-kos">{</span>
-      <span class="pl-s1">responseData</span> <span class="pl-c1">=</span> <span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">parse</span><span class="pl-kos">(</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+      <span class="pl-k">const</span> <span class="pl-s1">errorData</span> <span class="pl-c1">=</span> <span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">parse</span><span class="pl-kos">(</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+      <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">errorData</span><span class="pl-kos">.</span><span class="pl-c1">error</span><span class="pl-kos">?.</span><span class="pl-c1">message</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+        <span class="pl-s1">errorMessage</span> <span class="pl-c1">+=</span> <span class="pl-s">`: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">errorData</span><span class="pl-kos">.</span><span class="pl-c1">error</span><span class="pl-kos">.</span><span class="pl-c1">message</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
+      <span class="pl-kos">}</span> <span class="pl-k">else</span> <span class="pl-kos">{</span>
+        <span class="pl-s1">errorMessage</span> <span class="pl-c1">+=</span> <span class="pl-s">` - <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">stringify</span><span class="pl-kos">(</span><span class="pl-s1">errorData</span><span class="pl-kos">)</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
+      <span class="pl-kos">}</span>
     <span class="pl-kos">}</span> <span class="pl-k">catch</span> <span class="pl-kos">(</span><span class="pl-s1">parseError</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-      <span class="pl-k">const</span> <span class="pl-s1">errorMessage</span> <span class="pl-c1">=</span> <span class="pl-s">`API返回的数据无法解析为JSON: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
-      <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s">`DeepSeek API 错误: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">errorMessage</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-      <span class="pl-k">return</span> <span class="pl-s">`抱歉，发生了错误: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">errorMessage</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
+      <span class="pl-s1">errorMessage</span> <span class="pl-c1">+=</span> <span class="pl-s">` - 原始响应: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
     <span class="pl-kos">}</span>
-
-    <span class="pl-c">// 检查响应数据格式</span>
-    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-c1">!</span><span class="pl-s1">responseData</span><span class="pl-kos">.</span><span class="pl-c1">choices</span> <span class="pl-c1">||</span> <span class="pl-s1">responseData</span><span class="pl-kos">.</span><span class="pl-c1">choices</span><span class="pl-kos">.</span><span class="pl-c1">length</span> <span class="pl-c1">===</span> <span class="pl-c1">0</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-      <span class="pl-k">const</span> <span class="pl-s1">errorMessage</span> <span class="pl-c1">=</span> <span class="pl-s">`API返回数据格式错误: 没有找到有效的回复, 完整响应: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">stringify</span><span class="pl-kos">(</span><span class="pl-s1">responseData</span><span class="pl-kos">)</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
-      <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s">`DeepSeek API 错误: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">errorMessage</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-      <span class="pl-k">return</span> <span class="pl-s">`抱歉，发生了错误: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">errorMessage</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
-    <span class="pl-kos">}</span>
-
-    <span class="pl-k">return</span> <span class="pl-s1">responseData</span><span class="pl-kos">.</span><span class="pl-c1">choices</span><span class="pl-kos">[</span><span class="pl-c1">0</span><span class="pl-kos">]</span><span class="pl-kos">.</span><span class="pl-c1">message</span><span class="pl-kos">?.</span><span class="pl-c1">content</span> <span class="pl-c1">||</span> <span class="pl-s">""</span><span class="pl-kos">;</span>
-  <span class="pl-kos">}</span> <span class="pl-k">catch</span> <span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-    <span class="pl-c">// 捕获其他未知错误</span>
-    <span class="pl-k">const</span> <span class="pl-s1">errorMessage</span> <span class="pl-c1">=</span> <span class="pl-s1">error</span><span class="pl-kos">.</span><span class="pl-c1">message</span> <span class="pl-c1">||</span> <span class="pl-s">'未知错误'</span><span class="pl-kos">;</span>
-    <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s">`DeepSeek API 错误: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">errorMessage</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-    <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-      <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s">`响应详情: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">stringify</span><span class="pl-kos">(</span><span class="pl-s1">error</span><span class="pl-kos">.</span><span class="pl-c1">response</span><span class="pl-kos">)</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
-    <span class="pl-kos">}</span>
-    <span class="pl-k">return</span> <span class="pl-s">`抱歉，发生了错误: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">errorMessage</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
+    
+    <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s">`HTTP错误: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">errorMessage</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">return</span> <span class="pl-s">`请求失败: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">errorMessage</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
   <span class="pl-kos">}</span>
+
+  <span class="pl-c">// 解析JSON响应</span>
+  <span class="pl-k">let</span> <span class="pl-s1">responseData</span><span class="pl-kos">;</span>
+  <span class="pl-k">try</span> <span class="pl-kos">{</span>
+    <span class="pl-s1">responseData</span> <span class="pl-c1">=</span> <span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">parse</span><span class="pl-kos">(</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+  <span class="pl-kos">}</span> <span class="pl-k">catch</span> <span class="pl-kos">(</span><span class="pl-s1">parseError</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+    <span class="pl-k">const</span> <span class="pl-s1">errorMessage</span> <span class="pl-c1">=</span> <span class="pl-s">`响应数据解析失败: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">response</span><span class="pl-kos">.</span><span class="pl-c1">data</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
+    <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s">`JSON解析错误: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-s1">errorMessage</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">return</span> <span class="pl-s">`收到不可解析的响应数据`</span><span class="pl-kos">;</span>
+  <span class="pl-kos">}</span>
+
+
+  <span class="pl-c">// 验证响应结构</span>
+  <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-c1">!</span><span class="pl-s1">responseData</span><span class="pl-kos">.</span><span class="pl-c1">choices</span> <span class="pl-c1">||</span> <span class="pl-c1">!</span><span class="pl-v">Array</span><span class="pl-kos">.</span><span class="pl-en">isArray</span><span class="pl-kos">(</span><span class="pl-s1">responseData</span><span class="pl-kos">.</span><span class="pl-c1">choices</span><span class="pl-kos">)</span> <span class="pl-c1">||</span> 
+      <span class="pl-s1">responseData</span><span class="pl-kos">.</span><span class="pl-c1">choices</span><span class="pl-kos">.</span><span class="pl-c1">length</span> <span class="pl-c1">===</span> <span class="pl-c1">0</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+    <span class="pl-k">const</span> <span class="pl-s1">errorMessage</span> <span class="pl-c1">=</span> <span class="pl-s">`无效的响应格式: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">stringify</span><span class="pl-kos">(</span><span class="pl-s1">responseData</span><span class="pl-kos">)</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">;</span>
+    <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s1">errorMessage</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">return</span> <span class="pl-s">'收到无效的响应数据'</span><span class="pl-kos">;</span>
+  <span class="pl-kos">}</span>
+
+  <span class="pl-k">const</span> <span class="pl-s1">content</span> <span class="pl-c1">=</span> <span class="pl-s1">responseData</span><span class="pl-kos">.</span><span class="pl-c1">choices</span><span class="pl-kos">[</span><span class="pl-c1">0</span><span class="pl-kos">]</span><span class="pl-kos">.</span><span class="pl-c1">message</span><span class="pl-kos">?.</span><span class="pl-c1">content</span><span class="pl-kos">;</span>
+  <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-c1">!</span><span class="pl-s1">content</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+    <span class="pl-en">$log</span><span class="pl-kos">(</span><span class="pl-s">`响应中缺少内容字段: <span class="pl-s1"><span class="pl-kos">${</span><span class="pl-c1">JSON</span><span class="pl-kos">.</span><span class="pl-en">stringify</span><span class="pl-kos">(</span><span class="pl-s1">responseData</span><span class="pl-kos">)</span><span class="pl-kos">}</span></span>`</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">return</span> <span class="pl-s">'未收到有效的回复内容'</span><span class="pl-kos">;</span>
+  <span class="pl-kos">}</span>
+
+  <span class="pl-k">return</span> <span class="pl-s1">content</span><span class="pl-kos">;</span>
+
+  
 <span class="pl-kos">}</span>
 
 <span class="pl-k">async</span> <span class="pl-k">function</span> <span class="pl-en">output</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
-  <span class="pl-c">// 优先使用 $searchText，如果没有则使用 $pasteboardContent，最后使用默认值 "你好"</span>
+  <span class="pl-c">// 输入优先级：搜索框 &gt; 剪贴板 &gt; 默认值</span>
   <span class="pl-k">const</span> <span class="pl-s1">question</span> <span class="pl-c1">=</span> <span class="pl-s1">$searchText</span> <span class="pl-c1">||</span> <span class="pl-s1">$pasteboardContent</span> <span class="pl-c1">||</span> <span class="pl-s">"你好"</span><span class="pl-kos">;</span>
-  <span class="pl-k">return</span> <span class="pl-k">await</span> <span class="pl-en">deepseekDemo</span><span class="pl-kos">(</span><span class="pl-s1">question</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+  
+  <span class="pl-c">// 参数过滤</span>
+  <span class="pl-k">const</span> <span class="pl-s1">cleanQuestion</span> <span class="pl-c1">=</span> <span class="pl-k">typeof</span> <span class="pl-s1">question</span> <span class="pl-c1">===</span> <span class="pl-s">'string'</span> ? <span class="pl-s1">question</span><span class="pl-kos">.</span><span class="pl-en">trim</span><span class="pl-kos">(</span><span class="pl-kos">)</span> : <span class="pl-s">"你好"</span><span class="pl-kos">;</span>
+  
+  <span class="pl-k">if</span> <span class="pl-kos">(</span><span class="pl-c1">!</span><span class="pl-s1">cleanQuestion</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+    <span class="pl-k">return</span> <span class="pl-s">"请输入有效的问题内容"</span><span class="pl-kos">;</span>
+  <span class="pl-kos">}</span>
+  
+  <span class="pl-k">return</span> <span class="pl-k">await</span> <span class="pl-en">deepseekDemo</span><span class="pl-kos">(</span><span class="pl-s1">cleanQuestion</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
 <span class="pl-kos">}</span></pre></div>
 <h2>Deeplx.js</h2>
 <div class="highlight highlight-source-js"><pre class="notranslate"><span class="pl-c">// author: 叙白</span>

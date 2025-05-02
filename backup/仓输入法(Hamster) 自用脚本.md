@@ -85,17 +85,38 @@ async function bigModelTranslate(text) {
 
 ```javascript
 // author: 叙白
-// date: 2025-01-19
+// date: 2025-05-02
 // name: DeepSeek.js
 // 注意：请在脚本中的变量功能中添加 deepseek_key 变量，值为 DeepSeek 的 API Key
 // 如果您使用转发平台的 API ，则值为转发平台的 API Key, 并且修改 BASE_URL
-// 此脚本仅兼容 OpenAI 格式 (openai, deepseek, kimi 以及更多兼容 OpenAI 格式的都可使用，温度需要根据各家 AI 自行调整)
+// 此脚本兼容 OpenAI 格式 (openai, deepseek, kimi 等)
 
 const BASE_URL = "https://api.deepseek.com/v1/chat/completions";
 const DEFAULT_MODEL = "deepseek-chat";
 const DEFAULT_TEMPERATURE = 1.3; // 通用对话推荐温度
 
 async function deepseekDemo(question = "你好", options = {}) {
+  // 参数验证
+  try {
+    $log($deepseek_key)
+  } catch (ReferenceError){
+    const errorMessage = '未检测到 deepseek_key 变量，请先在脚本变量中配置 DeepSeek API 密钥';
+    $log(errorMessage);
+    return errorMessage;
+ 
+  }
+  if (!$deepseek_key) {
+    const errorMessage = '未检测到 deepseek_key 变量，请先在脚本变量中配置 DeepSeek API 密钥';
+    $log(errorMessage);
+    return errorMessage;
+  }
+
+  if (!question || typeof question !== 'string') {
+    const errorMessage = '无效的提问内容';
+    $log(errorMessage);
+    return errorMessage;
+  }
+
   const {
     model = DEFAULT_MODEL,
     temperature = DEFAULT_TEMPERATURE,
@@ -109,58 +130,79 @@ async function deepseekDemo(question = "你好", options = {}) {
     { role: "user", content: question }
   ];
 
-  try {
-    const response = await $http({
-      url: BASE_URL,
-      method: "POST",
-      header: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${$deepseek_key}`,
-      },
-      body: { messages, model, temperature },
-      timeout: 30,
-    });
+  const response = await $http({
+    url: BASE_URL,
+    method: "POST",
+    header: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${$deepseek_key}`,
+    },
+    body: { messages, model, temperature },
+    timeout: 30,
+  });
 
-    // 检查 HTTP 状态码
-    if (response.response.statusCode !== 200) {
-      const errorMessage = `API请求失败: HTTP状态码 ${response.response.statusCode}, 响应数据: ${response.data}`;
-      $log(`DeepSeek API 错误: ${errorMessage}`);
-      return `抱歉，发生了错误: ${errorMessage}`;
-    }
-
-    // 解析响应数据
-    let responseData;
+  // 处理HTTP异常状态码
+  if (response.response.statusCode < 200 || response.response.statusCode >= 300) {
+    let errorMessage = `API请求失败 (HTTP ${response.response.statusCode})`;
+    
+    // 尝试解析错误详情
     try {
-      responseData = JSON.parse(response.data);
+      const errorData = JSON.parse(response.data);
+      if (errorData.error?.message) {
+        errorMessage += `: ${errorData.error.message}`;
+      } else {
+        errorMessage += ` - ${JSON.stringify(errorData)}`;
+      }
     } catch (parseError) {
-      const errorMessage = `API返回的数据无法解析为JSON: ${response.data}`;
-      $log(`DeepSeek API 错误: ${errorMessage}`);
-      return `抱歉，发生了错误: ${errorMessage}`;
+      errorMessage += ` - 原始响应: ${response.data}`;
     }
-
-    // 检查响应数据格式
-    if (!responseData.choices || responseData.choices.length === 0) {
-      const errorMessage = `API返回数据格式错误: 没有找到有效的回复, 完整响应: ${JSON.stringify(responseData)}`;
-      $log(`DeepSeek API 错误: ${errorMessage}`);
-      return `抱歉，发生了错误: ${errorMessage}`;
-    }
-
-    return responseData.choices[0].message?.content || "";
-  } catch (error) {
-    // 捕获其他未知错误
-    const errorMessage = error.message || '未知错误';
-    $log(`DeepSeek API 错误: ${errorMessage}`);
-    if (error.response) {
-      $log(`响应详情: ${JSON.stringify(error.response)}`);
-    }
-    return `抱歉，发生了错误: ${errorMessage}`;
+    
+    $log(`HTTP错误: ${errorMessage}`);
+    return `请求失败: ${errorMessage}`;
   }
+
+  // 解析JSON响应
+  let responseData;
+  try {
+    responseData = JSON.parse(response.data);
+  } catch (parseError) {
+    const errorMessage = `响应数据解析失败: ${response.data}`;
+    $log(`JSON解析错误: ${errorMessage}`);
+    return `收到不可解析的响应数据`;
+  }
+
+
+  // 验证响应结构
+  if (!responseData.choices || !Array.isArray(responseData.choices) || 
+      responseData.choices.length === 0) {
+    const errorMessage = `无效的响应格式: ${JSON.stringify(responseData)}`;
+    $log(errorMessage);
+    return '收到无效的响应数据';
+  }
+
+  const content = responseData.choices[0].message?.content;
+  if (!content) {
+    $log(`响应中缺少内容字段: ${JSON.stringify(responseData)}`);
+    return '未收到有效的回复内容';
+  }
+
+  return content;
+
+  
 }
 
 async function output() {
-  // 优先使用 $searchText，如果没有则使用 $pasteboardContent，最后使用默认值 "你好"
+  // 输入优先级：搜索框 > 剪贴板 > 默认值
   const question = $searchText || $pasteboardContent || "你好";
-  return await deepseekDemo(question);
+  
+  // 参数过滤
+  const cleanQuestion = typeof question === 'string' ? question.trim() : "你好";
+  
+  if (!cleanQuestion) {
+    return "请输入有效的问题内容";
+  }
+  
+  return await deepseekDemo(cleanQuestion);
 }
 ```
 
