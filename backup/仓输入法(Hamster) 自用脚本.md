@@ -2,13 +2,14 @@
 
 ```javascript
 // author: 叙白
-// date: 2025-01-18
+// date: 2025-07-30
 // name: BigModelTranslator.js
 // 注意：请在脚本中的变量功能中添加 bigmodel_key 变量，值为 BigModel 的 API Key
+// 使用glm-4.5-airx ，可替换为glm-4.5-flash 免费模型，默认关闭思考
 
 const BASE_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
-const DEFAULT_MODEL = "glm-4-flash";
-const DEFAULT_TEMPERATURE = 0.1;
+const DEFAULT_MODEL = "glm-4.5-airx";
+const DEFAULT_TEMPERATURE = 0.8;
 
 /**
  * 主函数，用于处理输入并输出翻译结果
@@ -30,11 +31,11 @@ async function bigModelTranslate(text) {
   const messages = [
     {
       role: "system",
-      content: "You are a professional, authentic machine translation engine.",
+      content: `你是一个中英翻译专，能翻译得准确易懂，对各种专业术语都能准确翻译，但是对于不理解的术语请保持原文。`,
     },
     {
       role: "user",
-      content: `; 把下一行文本作为纯文本输入，对该文本进行中文和外语的互译,仅输出翻译。如果某些内容无需翻译（如专有名词、代码等），则保持原文不变。 不要解释，输入文本:\n${text}`,
+      content: `请你只给出翻译后的文本，不要有多余的文本，我要翻译的文本是： ${text}`,
     },
   ];
 
@@ -52,6 +53,9 @@ async function bigModelTranslate(text) {
         temperature: DEFAULT_TEMPERATURE,
         top_p: 0.1,
         max_tokens: 2048,
+				thinking: {
+        "type": "disabled",
+    },
       },
       timeout: 30,
     });
@@ -85,44 +89,32 @@ async function bigModelTranslate(text) {
 
 ```javascript
 // author: 叙白
-// date: 2025-05-02
+// date: 2025-07-16
 // name: DeepSeek.js
 // 注意：请在脚本中的变量功能中添加 deepseek_key 变量，值为 DeepSeek 的 API Key
 // 如果您使用转发平台的 API ，则值为转发平台的 API Key, 并且修改 BASE_URL
 // 此脚本兼容 OpenAI 格式 (openai, deepseek, kimi 等)
 
 const BASE_URL = "https://api.deepseek.com/v1/chat/completions";
-const DEFAULT_MODEL = "deepseek-chat";
-const DEFAULT_TEMPERATURE = 1.3; // 通用对话推荐温度
+const MODEL = "deepseek-chat";
+const TEMPERATURE = 1.3; // 通用对话推荐温度
+try {
+  API_KEY = $deepseek_key;
+} catch (ReferenceError) {
+  API_KEY = null;
+}
 
-async function deepseekDemo(question = "你好", options = {}) {
+async function deepseekDemo(question) {
   // 参数验证
-  try {
-    $log($deepseek_key)
-  } catch (ReferenceError){
-    const errorMessage = '未检测到 deepseek_key 变量，请先在脚本变量中配置 DeepSeek API 密钥';
-    $log(errorMessage);
-    return errorMessage;
- 
-  }
-  if (!$deepseek_key) {
-    const errorMessage = '未检测到 deepseek_key 变量，请先在脚本变量中配置 DeepSeek API 密钥';
-    $log(errorMessage);
-    return errorMessage;
+  if (API_KEY == null) {
+    return "未获取到api key，请在脚本页面右上面变量页面添加deepseek_key变量，值为deepseek平台提供的api key"
   }
 
   if (!question || typeof question !== 'string') {
-    const errorMessage = '无效的提问内容';
-    $log(errorMessage);
-    return errorMessage;
+    return '无效的提问内容';
   }
 
-  const {
-    model = DEFAULT_MODEL,
-    temperature = DEFAULT_TEMPERATURE,
-    isShortAnswer = !question.endsWith('-')  // 默认简短回答
-  } = options;
-
+  isShortAnswer = !question.endsWith('-');
   const systemPrompt = `你是一位AI助手，能够回答的专业以及准确${isShortAnswer ? "，现在请尽量用一句话回答我的问题" : ""}`;
 
   const messages = [
@@ -135,16 +127,20 @@ async function deepseekDemo(question = "你好", options = {}) {
     method: "POST",
     header: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${$deepseek_key}`,
+      Authorization: `Bearer ${API_KEY}`,
     },
-    body: { messages, model, temperature },
+    body: {
+      messages: messages,
+      model: MODEL,
+      temperature: TEMPERATURE
+    },
     timeout: 30,
   });
 
   // 处理HTTP异常状态码
-  if (response.response.statusCode < 200 || response.response.statusCode >= 300) {
+  if (response.response.statusCode != 200) {
     let errorMessage = `API请求失败 (HTTP ${response.response.statusCode})`;
-    
+
     // 尝试解析错误详情
     try {
       const errorData = JSON.parse(response.data);
@@ -156,7 +152,7 @@ async function deepseekDemo(question = "你好", options = {}) {
     } catch (parseError) {
       errorMessage += ` - 原始响应: ${response.data}`;
     }
-    
+
     $log(`HTTP错误: ${errorMessage}`);
     return `请求失败: ${errorMessage}`;
   }
@@ -173,8 +169,8 @@ async function deepseekDemo(question = "你好", options = {}) {
 
 
   // 验证响应结构
-  if (!responseData.choices || !Array.isArray(responseData.choices) || 
-      responseData.choices.length === 0) {
+  if (!responseData.choices || !Array.isArray(responseData.choices) ||
+    responseData.choices.length === 0) {
     const errorMessage = `无效的响应格式: ${JSON.stringify(responseData)}`;
     $log(errorMessage);
     return '收到无效的响应数据';
@@ -188,21 +184,14 @@ async function deepseekDemo(question = "你好", options = {}) {
 
   return content;
 
-  
+
 }
 
 async function output() {
-  // 输入优先级：搜索框 > 剪贴板 > 默认值
-  const question = $searchText || $pasteboardContent || "你好";
-  
-  // 参数过滤
-  const cleanQuestion = typeof question === 'string' ? question.trim() : "你好";
-  
-  if (!cleanQuestion) {
-    return "请输入有效的问题内容";
-  }
-  
-  return await deepseekDemo(cleanQuestion);
+  // 输入优先级：搜索框 > 剪贴板
+  const question = $searchText || $pasteboardContent;
+
+  return await deepseekDemo(question);
 }
 ```
 
@@ -397,6 +386,134 @@ async function geminiDemo(question = "你好", options = {}) {
 async function output() {
   const question = $searchText || $pasteboardContent || "你好-";
   return await geminiDemo(question);
+}
+```
+
+## Qwen-MT-Turbo.js
+
+```javascript
+// author: 叙白 (modified for Qwen-MT-Turbo)
+// date: 2025-07-25
+// name: Qwen-MT-Turbo.js
+// 注意：请在变量功能中添加 dashscope_key 变量，值为阿里云 DashScope 的 API Key
+
+const BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
+const MODEL = "qwen-mt-turbo";
+const TEMPERATURE = 0.7;
+
+try {
+  API_KEY = $dashscope_key;
+} catch (ReferenceError) {
+  API_KEY = null;
+}
+
+// 语言检测函数：使用 Google Translate API 自动识别语言
+async function detectLang(text) {
+  try {
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=auto&dt=t&q=${encodeURIComponent(text)}`;
+    const resp = await $http({
+      url,
+      header: { "Content-Type": "application/json" }
+    });
+
+    if (resp.response.statusCode !== 200) {
+      throw new Error("Google Translate 请求失败");
+    }
+
+    const jsonDict = JSON.parse(resp.data);
+    const detectedLang = jsonDict[2]; // 检测到的语言代码
+
+    // 判断目标语言
+    return detectedLang === "zh-CN" ? "English" : "Chinese";
+  } catch (error) {
+    throw new Error("语言检测失败：" + error.message);
+  }
+}
+
+// 主翻译函数：调用 Qwen-MT-Turbo 模型进行翻译
+async function translateWithQwen(text) {
+  if (!text || typeof text !== 'string') {
+    return '无效的输入内容';
+  }
+
+  if (API_KEY == null) {
+    return "未获取到 API Key，请在变量页面添加 dashscope_key";
+  }
+
+  let targetLang;
+  try {
+    targetLang = await detectLang(text);
+  } catch (err) {
+    return err.message;
+  }
+
+  const response = await $http({
+    url: BASE_URL,
+    method: "POST",
+    header: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${API_KEY}`
+    },
+    body: {
+      model: MODEL,
+      messages: [{ role: "user", content: text }],
+      temperature: TEMPERATURE,
+      translation_options: {
+        source_lang: "auto",
+        target_lang: targetLang
+      }
+    },
+    timeout: 30
+  });
+
+  // 处理 HTTP 错误状态码
+  if (response.response.statusCode !== 200) {
+    let errorMessage = `API 请求失败 (HTTP ${response.response.statusCode})`;
+    try {
+      const errorData = JSON.parse(response.data);
+      if (errorData.error?.message) {
+        errorMessage += `: ${errorData.error.message}`;
+      } else {
+        errorMessage += ` - ${JSON.stringify(errorData)}`;
+      }
+    } catch (parseError) {
+      errorMessage += ` - 原始响应: ${response.data}`;
+    }
+    $log(`HTTP 错误: ${errorMessage}`);
+    return `请求失败: ${errorMessage}`;
+  }
+
+  // 解析响应数据
+  let responseData;
+  try {
+    responseData = JSON.parse(response.data);
+  } catch (parseError) {
+    const errorMessage = `响应数据解析失败: ${response.data}`;
+    $log(`JSON 解析错误: ${errorMessage}`);
+    return `收到不可解析的响应数据`;
+  }
+
+  if (!responseData.choices || !Array.isArray(responseData.choices) || responseData.choices.length === 0) {
+    const errorMessage = `无效的响应格式: ${JSON.stringify(responseData)}`;
+    $log(errorMessage);
+    return '收到无效的响应数据';
+  }
+
+  const content = responseData.choices[0].message?.content;
+  if (!content) {
+    $log(`响应中缺少内容字段: ${JSON.stringify(responseData)}`);
+    return '未收到有效的回复内容';
+  }
+
+  return content;
+}
+
+// 输出主函数
+async function output() {
+  // 输入优先级：搜索框 > 剪贴板
+  const text = $searchText || $pasteboardContent;
+
+  return await translateWithQwen(text);
 }
 ```
 
